@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CampusPath | Chandigarh University</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/map.css">
+</head>
+<body>
+  <header>
+    <h1>CampusPath</h1><span>Chandigarh University · Gharuan, Mohali</span>
+    <input id="search" type="search" placeholder="Search blocks, hostels, gates…" autocomplete="off">
+  </header>
+  <main>
+    <div id="map"></div>
+    <section class="panel">
+      <h2>Campus navigation map</h2>
+      <p>Building footprints, OSM roads, walking paths, campus boundary, and searchable landmarks are separate layers.</p>
+      <div class="legend-row"><span class="swatch building"></span> Building footprints</div>
+      <div class="legend-row"><span class="swatch road"></span> Roads</div>
+      <div class="legend-row"><span class="swatch path"></span> Walking paths</div>
+      <div class="legend-row"><span class="swatch boundary"></span> Campus boundary</div>
+      <div class="legend-row"><span class="swatch landmark"></span> Landmarks</div>
+    </section>
+    <div id="results" class="search-results" hidden></div>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/map.js"></script>
+</body>
+</html>

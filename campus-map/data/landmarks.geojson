@@ -1,0 +1,462 @@
+{
+  "type": "FeatureCollection",
+  "name": "CampusPath Landmarks",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "way/1171272464",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.57410975316455,
+          30.768464637974684
+        ]
+      },
+      "properties": {
+        "name": "Chandigarh University",
+        "feature_type": "landmark",
+        "amenity": "university",
+        "leisure": null,
+        "landuse": null,
+        "source_id": "1171272464"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393899629",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5731717,
+          30.7703913
+        ]
+      },
+      "properties": {
+        "name": "LC- Girls Hostel",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393899629"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393913180",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.575543,
+          30.7696596
+        ]
+      },
+      "properties": {
+        "name": "Block-1",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393913180"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393950583",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5777677,
+          30.7705689
+        ]
+      },
+      "properties": {
+        "name": "Sukhna Hostel",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393950583"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393950584",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5764588,
+          30.7707072
+        ]
+      },
+      "properties": {
+        "name": "State Bank of India",
+        "feature_type": "landmark",
+        "amenity": "bank",
+        "leisure": null,
+        "building": null,
+        "source_id": "4393950584"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393950585",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5752974,
+          30.7677119
+        ]
+      },
+      "properties": {
+        "name": "State Bank of India",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": null,
+        "source_id": "4393950585"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393950586",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5758178,
+          30.7691822
+        ]
+      },
+      "properties": {
+        "name": "Block-2",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393950586"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393950587",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5761936,
+          30.7681568
+        ]
+      },
+      "properties": {
+        "name": "Block-3",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393950587"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393950588",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5750614,
+          30.7680944
+        ]
+      },
+      "properties": {
+        "name": "Workshops",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393950588"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393952889",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5746322,
+          30.7673108
+        ]
+      },
+      "properties": {
+        "name": "C3",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393952889"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393952890",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5760967,
+          30.766896
+        ]
+      },
+      "properties": {
+        "name": "C1",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393952890"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393952891",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5760431,
+          30.7663014
+        ]
+      },
+      "properties": {
+        "name": "Block-5",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393952891"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393952892",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5760967,
+          30.7671449
+        ]
+      },
+      "properties": {
+        "name": "Lords Food Court",
+        "feature_type": "landmark",
+        "amenity": "restaurant",
+        "leisure": null,
+        "building": null,
+        "source_id": "4393952892"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393952893",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.576086,
+          30.7674353
+        ]
+      },
+      "properties": {
+        "name": "Subway",
+        "feature_type": "landmark",
+        "amenity": "fast_food",
+        "leisure": null,
+        "building": null,
+        "source_id": "4393952893"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393952894",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5758831,
+          30.7653934
+        ]
+      },
+      "properties": {
+        "name": "Tagore Hostel",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393952894"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393952895",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5724737,
+          30.7640217
+        ]
+      },
+      "properties": {
+        "name": "Zakir Hostel",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393952895"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393952896",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5785322,
+          30.7690393
+        ]
+      },
+      "properties": {
+        "name": "Block-7",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": "yes",
+        "source_id": "4393952896"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/4393952897",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5789828,
+          30.7711043
+        ]
+      },
+      "properties": {
+        "name": "Bus Parking",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": null,
+        "source_id": "4393952897"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/6052708581",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5790844,
+          30.7641485
+        ]
+      },
+      "properties": {
+        "name": "Lahra",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": null,
+        "source_id": "6052708581"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/10755575034",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5689825,
+          30.7686843
+        ]
+      },
+      "properties": {
+        "name": "Sport Complex",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": "sports_centre",
+        "building": null,
+        "source_id": "10755575034"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/10755575035",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5744039,
+          30.7641484
+        ]
+      },
+      "properties": {
+        "name": "NC Hostel",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": null,
+        "source_id": "10755575035"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/10755575036",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5702868,
+          30.7707691
+        ]
+      },
+      "properties": {
+        "name": "South Block",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": null,
+        "source_id": "10755575036"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/11416832595",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5732189,
+          30.7704534
+        ]
+      },
+      "properties": {
+        "name": "LC-Girls Hostel",
+        "feature_type": "landmark",
+        "amenity": null,
+        "leisure": null,
+        "building": null,
+        "source_id": "11416832595"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "node/13167501118",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.5702397,
+          30.7712358
+        ]
+      },
+      "properties": {
+        "name": "HR CAFE",
+        "feature_type": "landmark",
+        "amenity": "cafe",
+        "leisure": null,
+        "building": null,
+        "source_id": "13167501118"
+      }
+    }
+  ]
+}

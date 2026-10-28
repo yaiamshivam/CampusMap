@@ -1,0 +1,48 @@
+{
+  "campus": "CHANDIGARH UNIVERSITY, GHARUAN, MOHALI, PUNJAB, INDIA",
+  "status_legend": {
+    "verified": "Name is supported by an authoritative source for this exact footprint.",
+    "unresolved": "No authoritative coordinate-level name was found; the footprint must remain unnamed."
+  },
+  "sources_checked": [
+    {
+      "title": "Chandigarh University Maps / Virtual Tour",
+      "url": "https://www.cuchd.in/maps/",
+      "result": "Interactive campus reference available, but no downloadable coordinate-labelled building dataset exposed."
+    },
+    {
+      "title": "Chandigarh University Department of Students' Welfare",
+      "url": "https://www.cuchd.in/dsaa/students-welfare.php",
+      "result": "Confirms block groups A1-A3, B1-B5, C1-C3, D1-D8, DD1-DD5, and E1-E2, but does not map each OSM footprint ID to a specific official name."
+    }
+  ],
+  "buildings": {
+    "relation/21474449": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216904615": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216904616": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216904618": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216904620": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216904621": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216904622": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216904627": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216904628": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216991245": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997335": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997336": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997337": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997338": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997339": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997340": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997341": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997342": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997343": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997344": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997345": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997346": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997348": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997349": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997350": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997351": { "verified_name": null, "status": "unresolved", "geometry_preserved": true },
+    "way/1216997352": { "verified_name": null, "status": "unresolved", "geometry_preserved": true }
+  }
+}
