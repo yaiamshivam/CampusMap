@@ -1,0 +1,9 @@
+{
+  "buildings": 39,
+  "roads": 93,
+  "paths": 11,
+  "landmarks": 24,
+  "graph_nodes": 788,
+  "graph_edges": 845,
+  "skipped_invalid_buildings": 0
+}

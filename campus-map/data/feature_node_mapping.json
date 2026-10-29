@@ -1,0 +1,402 @@
+{
+  "max_snap_distance_m": 150,
+  "features": [
+    {
+      "feature_id": "way/441673347",
+      "feature_type": "building",
+      "name": "A1",
+      "node_id": "11275801211",
+      "distance_m": 40.11,
+      "point": [
+        76.57824384,
+        30.77180935
+      ]
+    },
+    {
+      "feature_id": "way/1203031403",
+      "feature_type": "building",
+      "name": "Block B1",
+      "node_id": "10088300294",
+      "distance_m": 17.93,
+      "point": [
+        76.575775025,
+        30.7700434625
+      ]
+    },
+    {
+      "feature_id": "way/1203185692",
+      "feature_type": "building",
+      "name": "D3",
+      "node_id": "10884094161",
+      "distance_m": 62.88,
+      "point": [
+        76.5704229,
+        30.77089588
+      ]
+    },
+    {
+      "feature_id": "way/1203185693",
+      "feature_type": "building",
+      "name": "D2",
+      "node_id": "11275797954",
+      "distance_m": 31.33,
+      "point": [
+        76.570315875,
+        30.77149420625
+      ]
+    },
+    {
+      "feature_id": "way/1203185694",
+      "feature_type": "building",
+      "name": "D5",
+      "node_id": "6967854420",
+      "distance_m": 25.44,
+      "point": [
+        76.56973486,
+        30.77103494
+      ]
+    },
+    {
+      "feature_id": "way/1203185695",
+      "feature_type": "building",
+      "name": "D4",
+      "node_id": "6967854425",
+      "distance_m": 31.3,
+      "point": [
+        76.57021697142856,
+        30.770449128571425
+      ]
+    },
+    {
+      "feature_id": "way/1216904611",
+      "feature_type": "building",
+      "name": "D6",
+      "node_id": "6967854420",
+      "distance_m": 60.92,
+      "point": [
+        76.56937332333334,
+        30.771611636666666
+      ]
+    },
+    {
+      "feature_id": "way/1216904614",
+      "feature_type": "building",
+      "name": "food shop",
+      "node_id": "6868648827",
+      "distance_m": 23.58,
+      "point": [
+        76.57747962857142,
+        30.771365457142856
+      ]
+    },
+    {
+      "feature_id": "way/1216904629",
+      "feature_type": "building",
+      "name": "A3",
+      "node_id": "10883103253",
+      "distance_m": 20.64,
+      "point": [
+        76.5785526111111,
+        30.769099533333335
+      ]
+    },
+    {
+      "feature_id": "way/1216904630",
+      "feature_type": "building",
+      "name": "A2",
+      "node_id": "6868648810",
+      "distance_m": 36.47,
+      "point": [
+        76.57934748571428,
+        30.769833014285716
+      ]
+    },
+    {
+      "feature_id": "way/1216997353",
+      "feature_type": "building",
+      "name": "Shivalik Hostel",
+      "node_id": "11275801193",
+      "distance_m": 30.02,
+      "point": [
+        76.56871890588235,
+        30.771104766666667
+      ]
+    },
+    {
+      "feature_id": "way/1216997354",
+      "feature_type": "building",
+      "name": "D7",
+      "node_id": "6967854418",
+      "distance_m": 72.73,
+      "point": [
+        76.569504496,
+        30.772277192
+      ]
+    },
+    {
+      "feature_id": "way/1171272464",
+      "feature_type": "landmark",
+      "name": "Chandigarh University",
+      "node_id": "12755171681",
+      "distance_m": 16.02,
+      "point": [
+        76.57410975316455,
+        30.768464637974684
+      ]
+    },
+    {
+      "feature_id": "node/4393899629",
+      "feature_type": "landmark",
+      "name": "LC- Girls Hostel",
+      "node_id": "4393899629",
+      "distance_m": 0.0,
+      "point": [
+        76.5731717,
+        30.7703913
+      ]
+    },
+    {
+      "feature_id": "node/4393913180",
+      "feature_type": "landmark",
+      "name": "Block-1",
+      "node_id": "6868648841",
+      "distance_m": 40.34,
+      "point": [
+        76.575543,
+        30.7696596
+      ]
+    },
+    {
+      "feature_id": "node/4393950583",
+      "feature_type": "landmark",
+      "name": "Sukhna Hostel",
+      "node_id": "6868648834",
+      "distance_m": 23.17,
+      "point": [
+        76.5777677,
+        30.7705689
+      ]
+    },
+    {
+      "feature_id": "node/4393950584",
+      "feature_type": "landmark",
+      "name": "State Bank of India",
+      "node_id": "10755575037",
+      "distance_m": 12.53,
+      "point": [
+        76.5764588,
+        30.7707072
+      ]
+    },
+    {
+      "feature_id": "node/4393950585",
+      "feature_type": "landmark",
+      "name": "State Bank of India",
+      "node_id": "6877086775",
+      "distance_m": 12.68,
+      "point": [
+        76.5752974,
+        30.7677119
+      ]
+    },
+    {
+      "feature_id": "node/4393950586",
+      "feature_type": "landmark",
+      "name": "Block-2",
+      "node_id": "6868648842",
+      "distance_m": 11.52,
+      "point": [
+        76.5758178,
+        30.7691822
+      ]
+    },
+    {
+      "feature_id": "node/4393950587",
+      "feature_type": "landmark",
+      "name": "Block-3",
+      "node_id": "4393950587",
+      "distance_m": 0.0,
+      "point": [
+        76.5761936,
+        30.7681568
+      ]
+    },
+    {
+      "feature_id": "node/4393950588",
+      "feature_type": "landmark",
+      "name": "Workshops",
+      "node_id": "10883096466",
+      "distance_m": 34.76,
+      "point": [
+        76.5750614,
+        30.7680944
+      ]
+    },
+    {
+      "feature_id": "node/4393952889",
+      "feature_type": "landmark",
+      "name": "C3",
+      "node_id": "6877086776",
+      "distance_m": 40.29,
+      "point": [
+        76.5746322,
+        30.7673108
+      ]
+    },
+    {
+      "feature_id": "node/4393952890",
+      "feature_type": "landmark",
+      "name": "C1",
+      "node_id": "6876748955",
+      "distance_m": 68.35,
+      "point": [
+        76.5760967,
+        30.766896
+      ]
+    },
+    {
+      "feature_id": "node/4393952891",
+      "feature_type": "landmark",
+      "name": "Block-5",
+      "node_id": "6876748955",
+      "distance_m": 15.32,
+      "point": [
+        76.5760431,
+        30.7663014
+      ]
+    },
+    {
+      "feature_id": "node/4393952892",
+      "feature_type": "landmark",
+      "name": "Lords Food Court",
+      "node_id": "6876748960",
+      "distance_m": 54.85,
+      "point": [
+        76.5760967,
+        30.7671449
+      ]
+    },
+    {
+      "feature_id": "node/4393952893",
+      "feature_type": "landmark",
+      "name": "Subway",
+      "node_id": "6876748960",
+      "distance_m": 22.73,
+      "point": [
+        76.576086,
+        30.7674353
+      ]
+    },
+    {
+      "feature_id": "node/4393952894",
+      "feature_type": "landmark",
+      "name": "Tagore Hostel",
+      "node_id": "10088293818",
+      "distance_m": 52.91,
+      "point": [
+        76.5758831,
+        30.7653934
+      ]
+    },
+    {
+      "feature_id": "node/4393952895",
+      "feature_type": "landmark",
+      "name": "Zakir Hostel",
+      "node_id": "10088363301",
+      "distance_m": 69.29,
+      "point": [
+        76.5724737,
+        30.7640217
+      ]
+    },
+    {
+      "feature_id": "node/4393952896",
+      "feature_type": "landmark",
+      "name": "Block-7",
+      "node_id": "6868648801",
+      "distance_m": 19.14,
+      "point": [
+        76.5785322,
+        30.7690393
+      ]
+    },
+    {
+      "feature_id": "node/4393952897",
+      "feature_type": "landmark",
+      "name": "Bus Parking",
+      "node_id": "10088337466",
+      "distance_m": 16.65,
+      "point": [
+        76.5789828,
+        30.7711043
+      ]
+    },
+    {
+      "feature_id": "node/6052708581",
+      "feature_type": "landmark",
+      "name": "Lahra",
+      "node_id": "10088363317",
+      "distance_m": 2.71,
+      "point": [
+        76.5790844,
+        30.7641485
+      ]
+    },
+    {
+      "feature_id": "node/10755575034",
+      "feature_type": "landmark",
+      "name": "Sport Complex",
+      "node_id": "10088390831",
+      "distance_m": 95.8,
+      "point": [
+        76.5689825,
+        30.7686843
+      ]
+    },
+    {
+      "feature_id": "node/10755575035",
+      "feature_type": "landmark",
+      "name": "NC Hostel",
+      "node_id": "6968133044",
+      "distance_m": 46.06,
+      "point": [
+        76.5744039,
+        30.7641484
+      ]
+    },
+    {
+      "feature_id": "node/10755575036",
+      "feature_type": "landmark",
+      "name": "South Block",
+      "node_id": "6967854425",
+      "distance_m": 56.98,
+      "point": [
+        76.5702868,
+        30.7707691
+      ]
+    },
+    {
+      "feature_id": "node/11416832595",
+      "feature_type": "landmark",
+      "name": "LC-Girls Hostel",
+      "node_id": "4393899629",
+      "distance_m": 8.25,
+      "point": [
+        76.5732189,
+        30.7704534
+      ]
+    },
+    {
+      "feature_id": "node/13167501118",
+      "feature_type": "landmark",
+      "name": "HR CAFE",
+      "node_id": "11275797954",
+      "distance_m": 60.96,
+      "point": [
+        76.5702397,
+        30.7712358
+      ]
+    }
+  ],
+  "unmapped": []
+}
