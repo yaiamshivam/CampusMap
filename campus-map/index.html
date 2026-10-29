@@ -2,59 +2,665 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CampusPath | Chandigarh University</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CampusPath | Chandigarh University Navigation</title>
+  <meta name="description" content="CampusPath: A multi-screen campus navigation experience for Chandigarh University. Search buildings, explore hostels, and discover shortest walking routes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="css/map.css">
 </head>
 <body>
-  <header>
-    <h1>CampusPath</h1><span>Chandigarh University · Gharuan, Mohali</span>
-    <div class="autocomplete">
-      <input id="source-search" type="search" placeholder="Start location…" autocomplete="off" aria-controls="source-results" aria-autocomplete="list">
-      <div id="source-results" class="search-results" role="listbox" hidden></div>
+  <!-- Global Application Header -->
+  <header class="app-header">
+    <div class="brand-group" id="header-brand-trigger" role="button" tabindex="0" title="Return to Welcome Screen">
+      <div class="brand-logo-wrap">
+        <svg class="brand-icon" width="24" height="24" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <circle cx="14" cy="14" r="12" stroke="url(#cp-header-grad)" stroke-width="2" opacity="0.7"/>
+          <path d="M14 4.5L18.5 12L14 10L9.5 12L14 4.5Z" fill="#38bdf8"/>
+          <path d="M14 23.5L9.5 16L14 18L18.5 16L14 23.5Z" fill="#2563eb" opacity="0.8"/>
+          <circle cx="14" cy="14" r="2.8" fill="#00f0ff"/>
+          <defs>
+            <linearGradient id="cp-header-grad" x1="2" y1="2" x2="26" y2="26">
+              <stop stop-color="#38bdf8"/>
+              <stop offset="1" stop-color="#2563eb"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="brand-glow"></span>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title-row">
+          <h1 class="brand-title">CampusPath</h1>
+          <span class="brand-badge">CU Mohali</span>
+        </div>
+        <span class="brand-subtitle">Chandigarh University · Gharuan</span>
+      </div>
     </div>
-    <div class="autocomplete">
-      <input id="search" type="search" placeholder="Destination…" autocomplete="off" aria-controls="destination-results" aria-autocomplete="list">
-      <div id="destination-results" class="search-results" role="listbox" hidden></div>
+
+    <!-- Header Navigation Actions & Status -->
+    <div class="header-status-area">
+      <div class="flow-step-pill" id="header-step-indicator" hidden>
+        <span class="step-dot"></span>
+        <span class="step-text" id="header-step-label">Step 1 of 3</span>
+      </div>
+      <div class="system-status-pill" id="header-system-status">
+        <span class="status-indicator-dot"></span>
+        <span class="status-indicator-label">Navigation Ready</span>
+      </div>
     </div>
-    <button id="clear-destination" type="button" hidden>Clear destination</button>
   </header>
-  <main>
-    <div id="map"></div>
-    <section class="panel">
-      <h2>Campus navigation map</h2>
-      <p>Building footprints, OSM roads, walking paths, campus boundary, and searchable landmarks are separate layers.</p>
-      <div class="legend-row"><span class="swatch building"></span> Building footprints</div>
-      <div class="legend-row"><span class="swatch road"></span> Roads</div>
-      <div class="legend-row"><span class="swatch path"></span> Walking paths</div>
-      <div class="legend-row"><span class="swatch boundary"></span> Campus boundary</div>
-      <div class="legend-row"><span class="swatch landmark"></span> Landmarks</div>
-      <div class="route-controls">
-        <label for="route-algorithm">Route algorithm</label>
-        <select id="route-algorithm">
-          <option value="dijkstra">Dijkstra · shortest distance</option>
-          <option value="bfs">BFS · fewest edges</option>
-        </select>
-        <button id="clear-route" type="button">Clear route</button>
-        <button id="start-navigation" type="button" hidden>Start Navigation</button>
-        <button id="manual-start" type="button">Set start point on map</button>
-        <div id="manual-start-controls" hidden>
-          <button id="confirm-manual-start" type="button">Confirm selected start</button>
-          <button id="cancel-manual-start" type="button">Cancel</button>
+
+  <!-- Multi-Screen Application Viewport -->
+  <main class="app-main">
+
+    <!-- ====================================================================
+         SCREEN 1: WELCOME SCREEN (Active by default)
+         ==================================================================== -->
+    <section id="screen-welcome" class="app-screen screen-welcome screen-active">
+      <div class="welcome-container">
+        <div class="welcome-content">
+          <div class="welcome-badge">
+            <span class="badge-dot"></span>
+            <span>Chandigarh University Navigation Experience</span>
+          </div>
+
+          <h2 class="welcome-headline">
+            Your campus.<br>
+            <span class="headline-gradient">One clear path.</span>
+          </h2>
+
+          <p class="welcome-description">
+            Find academic blocks, food courts, student hostels, and discover shortest walking routes across Chandigarh University with intelligent graph navigation.
+          </p>
+
+          <div class="welcome-actions">
+            <button id="btn-start-journey" class="btn-primary-welcome" type="button">
+              <span>Explore Campus</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+            <button id="btn-browse-destinations" class="btn-secondary-welcome" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+              </svg>
+              <span>Browse Destinations</span>
+            </button>
+          </div>
+
+          <!-- Feature Highlights -->
+          <div class="welcome-highlights">
+            <div class="highlight-item">
+              <div class="highlight-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+                  <circle cx="18" cy="5" r="3"></circle>
+                  <circle cx="6" cy="12" r="3"></circle>
+                  <circle cx="18" cy="19" r="3"></circle>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+              </div>
+              <div class="highlight-text">
+                <strong>Graph Navigation</strong>
+                <span>Dijkstra &amp; BFS verified routing</span>
+              </div>
+            </div>
+
+            <div class="highlight-item">
+              <div class="highlight-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"></path>
+                  <circle cx="12" cy="9" r="2.5"></circle>
+                </svg>
+              </div>
+              <div class="highlight-text">
+                <strong>36+ Locations</strong>
+                <span>Blocks, hostels, food courts &amp; ATMs</span>
+              </div>
+            </div>
+
+            <div class="highlight-item">
+              <div class="highlight-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 14 14"></polyline>
+                </svg>
+              </div>
+              <div class="highlight-text">
+                <strong>Walking Estimates</strong>
+                <span>Accurate pacing at 1.4 m/s</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div id="navigation-controls" hidden>
-          <button id="recenter-location" type="button">Recenter on my location</button>
-          <button id="follow-location" type="button">Follow location: on</button>
-          <button id="retry-location" type="button" hidden>Retry GPS</button>
-          <button id="stop-navigation" type="button">Stop Navigation</button>
+
+        <!-- Abstract Campus Visual Art -->
+        <div class="welcome-visual-art" aria-hidden="true">
+          <div class="art-backdrop-glow"></div>
+          <svg class="campus-abstract-svg" viewBox="0 0 460 460" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Background Grid & Coordinate Ring -->
+            <circle cx="230" cy="230" r="200" stroke="rgba(56, 189, 248, 0.12)" stroke-width="1.5" stroke-dasharray="6 6"/>
+            <circle cx="230" cy="230" r="150" stroke="rgba(56, 189, 248, 0.15)" stroke-width="1.5"/>
+            <circle cx="230" cy="230" r="90" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1.5"/>
+
+            <!-- Campus Pathways & Geometry -->
+            <path d="M90 320L170 230L260 250L350 160L390 190" stroke="rgba(56, 189, 248, 0.35)" stroke-width="3" stroke-linecap="round"/>
+            <path d="M170 230L210 140L310 110L350 160" stroke="rgba(0, 240, 255, 0.6)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="8 6" class="anim-dash-path"/>
+            <path d="M260 250L280 340L370 310" stroke="rgba(168, 85, 247, 0.5)" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M120 160L210 140L230 230" stroke="rgba(56, 189, 248, 0.25)" stroke-width="2" stroke-linecap="round"/>
+
+            <!-- Node Highlights & Landmarks -->
+            <g class="node-group">
+              <circle cx="210" cy="140" r="8" fill="#00f0ff" filter="drop-shadow(0 0 10px #00f0ff)"/>
+              <circle cx="210" cy="140" r="16" stroke="rgba(0, 240, 255, 0.4)" stroke-width="1.5" class="pulse-ring"/>
+              <text x="226" y="145" fill="#f8fafc" font-size="11" font-weight="700" letter-spacing="0.05em">BLOCK B1</text>
+            </g>
+
+            <g class="node-group">
+              <circle cx="350" cy="160" r="8" fill="#f59e0b" filter="drop-shadow(0 0 10px #f59e0b)"/>
+              <circle cx="350" cy="160" r="16" stroke="rgba(245, 158, 11, 0.4)" stroke-width="1.5" class="pulse-ring"/>
+              <text x="366" y="165" fill="#f8fafc" font-size="11" font-weight="700" letter-spacing="0.05em">SUKHNA HOSTEL</text>
+            </g>
+
+            <g class="node-group">
+              <circle cx="170" cy="230" r="6" fill="#38bdf8"/>
+              <circle cx="260" cy="250" r="6" fill="#38bdf8"/>
+              <circle cx="310" cy="110" r="5" fill="#818cf8"/>
+              <circle cx="280" cy="340" r="5" fill="#a855f7"/>
+              <text x="288" y="355" fill="#94a3b8" font-size="10" font-weight="600">FOOD COURT</text>
+            </g>
+
+            <!-- Campus Perimeter Indicator -->
+            <rect x="70" y="80" width="320" height="290" rx="30" stroke="rgba(244, 63, 94, 0.3)" stroke-width="1.5" stroke-dasharray="10 8"/>
+            <text x="85" y="102" fill="rgba(244, 63, 94, 0.7)" font-size="9" font-weight="700" letter-spacing="0.08em">CU BOUNDARY VERIFIED</text>
+          </svg>
         </div>
-        <div id="navigation-note">GPS navigation uses the existing graph and a 1.4 m/s walking-speed estimate. It is not turn-by-turn guidance.</div>
-        <div id="gps-status" role="status">GPS status: no location fix received; routing not accepted.</div>
-        <div id="route-status" role="status">Choose a start and destination to calculate a route.</div>
       </div>
     </section>
+
+    <!-- ====================================================================
+         SCREEN 2: CHOOSE STARTING LOCATION
+         ==================================================================== -->
+    <section id="screen-source" class="app-screen screen-flow" hidden>
+      <div class="flow-container">
+        <!-- Flow Nav Bar -->
+        <div class="flow-nav-header">
+          <button id="btn-back-source-to-welcome" class="btn-flow-back" type="button" aria-label="Back to Welcome">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Back</span>
+          </button>
+          <span class="flow-step-tag">Step 01 / 03</span>
+        </div>
+
+        <div class="flow-title-section">
+          <h2 class="flow-title">Where are you starting from?</h2>
+          <p class="flow-subtitle">Select how you want to set your departure point on campus.</p>
+        </div>
+
+        <!-- 3 Choice Cards -->
+        <div class="source-options-grid">
+          <!-- Choice 1: Use Live Device Position -->
+          <div class="source-card" id="card-opt-gps">
+            <div class="source-card-header">
+              <div class="card-icon-wrap gps-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <line x1="12" y1="2" x2="12" y2="5"></line>
+                  <line x1="12" y1="19" x2="12" y2="22"></line>
+                  <line x1="2" y1="12" x2="5" y2="12"></line>
+                  <line x1="19" y1="12" x2="22" y2="12"></line>
+                </svg>
+              </div>
+              <div class="source-card-text">
+                <h3 class="card-title">Use My Live Position</h3>
+                <p class="card-desc">Automatically detect your current location inside the Chandigarh University campus using GPS.</p>
+              </div>
+            </div>
+            <div class="source-card-actions">
+              <button id="btn-use-live-gps" class="btn-card-action" type="button">
+                <span class="btn-gps-pulse"></span>
+                <span id="btn-gps-text">Select Device Position</span>
+              </button>
+              <div id="gps-loading-indicator" class="inline-loading" hidden>
+                <span class="spinner-ring"></span>
+                <span>Connecting to GPS…</span>
+              </div>
+            </div>
+            <div id="gps-feedback-msg" class="source-feedback" hidden></div>
+          </div>
+
+          <!-- Choice 2: Search Building or Landmark -->
+          <div class="source-card" id="card-opt-search">
+            <div class="source-card-header">
+              <div class="card-icon-wrap search-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+              </div>
+              <div class="source-card-text">
+                <h3 class="card-title">Search Campus Location</h3>
+                <p class="card-desc">Choose a known academic block, department, hostel, or campus landmark as your departure point.</p>
+              </div>
+            </div>
+            <div class="source-card-inputs">
+              <div class="autocomplete" id="source-autocomplete-wrap">
+                <div class="input-styled-wrap">
+                  <svg class="search-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input id="source-search" type="search" placeholder="Search departure block or landmark…" autocomplete="off" aria-controls="source-results" aria-autocomplete="list" spellcheck="false">
+                </div>
+                <div id="source-results" class="search-results" role="listbox" hidden></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Choice 3: Manual Map Selection -->
+          <div class="source-card" id="card-opt-map">
+            <div class="source-card-header">
+              <div class="card-icon-wrap map-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="16"></line>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+              </div>
+              <div class="source-card-text">
+                <h3 class="card-title">Choose on Campus Map</h3>
+                <p class="card-desc">Click directly on the interactive campus map to pinpoint your exact departure coordinates.</p>
+              </div>
+            </div>
+            <div class="source-card-actions">
+              <button id="manual-start" class="btn-card-action btn-map-select" type="button">
+                <span>Set start point on map</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Departure Banner & Continue Action -->
+        <div class="flow-footer-bar">
+          <div class="selected-status-card" id="departure-status-card">
+            <div class="status-icon-indicator" id="departure-status-dot"></div>
+            <div class="status-text-wrap">
+              <span class="status-label">Selected Departure</span>
+              <span class="status-value" id="departure-status-value">None selected</span>
+            </div>
+          </div>
+
+          <button id="btn-continue-to-dest" class="btn-primary-flow" type="button" disabled>
+            <span>Continue to Destination</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 3: DESTINATION DISCOVERY
+         ==================================================================== -->
+    <section id="screen-destination" class="app-screen screen-flow" hidden>
+      <div class="flow-container">
+        <!-- Flow Nav Bar -->
+        <div class="flow-nav-header">
+          <button id="btn-back-dest-to-source" class="btn-flow-back" type="button" aria-label="Back to Departure Selection">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Back</span>
+          </button>
+
+          <!-- Departure Recap Chip -->
+          <div class="departure-recap-pill" id="dest-departure-recap" title="Click to change departure location">
+            <span class="recap-label">From:</span>
+            <span class="recap-val" id="recap-departure-name">Start point</span>
+            <span class="recap-change-btn">Change</span>
+          </div>
+
+          <span class="flow-step-tag">Step 02 / 03</span>
+        </div>
+
+        <div class="flow-title-section">
+          <h2 class="flow-title">Where would you like to go?</h2>
+          <p class="flow-subtitle">Search any campus building, hostel, or select a suggested location below.</p>
+        </div>
+
+        <!-- Prominent Destination Search Bar -->
+        <div class="destination-search-hub">
+          <div class="autocomplete" id="destination-autocomplete-wrap">
+            <div class="input-styled-wrap search-large">
+              <svg class="search-input-icon dest-accent-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"></path>
+                <circle cx="12" cy="9" r="2.5"></circle>
+              </svg>
+              <input id="search" type="search" placeholder="Search destination (e.g. Block B1, Sukhna Hostel, Subway)…" autocomplete="off" aria-controls="destination-results" aria-autocomplete="list" spellcheck="false">
+              <button id="clear-destination" type="button" class="btn-clear-input" title="Clear destination" aria-label="Clear destination" hidden>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Clear</span>
+              </button>
+            </div>
+            <div id="destination-results" class="search-results" role="listbox" hidden></div>
+          </div>
+        </div>
+
+        <!-- Destination Discovery Categories -->
+        <div class="discovery-section">
+          <div class="discovery-filter-tabs" role="tablist">
+            <button class="filter-tab active" data-category="all" type="button">All Locations</button>
+            <button class="filter-tab" data-category="academic" type="button">Academic Blocks</button>
+            <button class="filter-tab" data-category="hostels" type="button">Hostels</button>
+            <button class="filter-tab" data-category="dining" type="button">Dining &amp; Amenities</button>
+          </div>
+
+          <!-- Real Suggested Campus Destinations Grid -->
+          <div class="destinations-grid" id="destinations-grid-container">
+            <!-- Populated from verified campus features -->
+          </div>
+        </div>
+
+        <!-- Selected Destination Footer & Find Route Action -->
+        <div class="flow-footer-bar">
+          <div class="selected-status-card" id="destination-status-card">
+            <div class="status-icon-indicator dest-dot" id="destination-status-dot"></div>
+            <div class="status-text-wrap">
+              <span class="status-label">Selected Destination</span>
+              <span class="status-value" id="destination-status-value">None selected</span>
+            </div>
+          </div>
+
+          <button id="btn-find-route-preview" class="btn-primary-flow" type="button" disabled>
+            <span>Calculate Route</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 4: ROUTE PREVIEW
+         ==================================================================== -->
+    <section id="screen-preview" class="app-screen screen-flow" hidden>
+      <div class="flow-container preview-container">
+        <!-- Flow Nav Bar -->
+        <div class="flow-nav-header">
+          <button id="btn-back-preview-to-dest" class="btn-flow-back" type="button" aria-label="Back to Destination">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Back</span>
+          </button>
+          <span class="flow-step-tag">Step 03 / 03</span>
+        </div>
+
+        <div class="flow-title-section">
+          <h2 class="flow-title">Route Overview</h2>
+          <p class="flow-subtitle">Review your walking path metrics before starting live navigation.</p>
+        </div>
+
+        <!-- Connected Route Waypoints Card -->
+        <div class="preview-journey-card">
+          <!-- Departure Point -->
+          <div class="journey-endpoint">
+            <div class="endpoint-node start-node"></div>
+            <div class="endpoint-details">
+              <span class="endpoint-label">Departure</span>
+              <strong class="endpoint-name" id="preview-departure-name">Start point</strong>
+            </div>
+            <button class="btn-endpoint-change" id="btn-change-source" type="button">Change</button>
+          </div>
+
+          <!-- Vertical Connector Line -->
+          <div class="journey-connector">
+            <div class="connector-line"></div>
+            <button id="swap-locations" type="button" class="btn-swap-preview" title="Swap departure and destination" aria-label="Swap departure and destination">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8v12M17 20l4-4M17 20l-4-4"></path>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Destination Point -->
+          <div class="journey-endpoint">
+            <div class="endpoint-node end-node"></div>
+            <div class="endpoint-details">
+              <span class="endpoint-label">Destination</span>
+              <strong class="endpoint-name" id="preview-destination-name">Destination point</strong>
+            </div>
+            <button class="btn-endpoint-change" id="btn-change-destination" type="button">Change</button>
+          </div>
+        </div>
+
+        <!-- Calculated Real Metrics Grid -->
+        <div class="preview-metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon distance-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12h18M3 6h18M3 18h18"></path>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <span class="metric-label">Route Distance</span>
+              <strong class="metric-val" id="preview-metric-distance">--</strong>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon time-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 14 14"></polyline>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <span class="metric-label">Estimated Walking Time</span>
+              <strong class="metric-val" id="preview-metric-time">--</strong>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon pace-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+              </svg>
+            </div>
+            <div class="metric-info">
+              <span class="metric-label">Walking Pace</span>
+              <strong class="metric-val" id="preview-metric-pace">1.4 m/s</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Algorithm Selection & Status Banner -->
+        <div class="preview-algorithm-box">
+          <div class="algorithm-label-group">
+            <label for="route-algorithm" class="algo-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="18" cy="18" r="3"></circle>
+                <path d="M6 9v12M18 3v12"></path>
+              </svg>
+              <span>Routing Algorithm</span>
+            </label>
+            <div class="select-algo-styled">
+              <select id="route-algorithm">
+                <option value="dijkstra">Dijkstra · shortest distance</option>
+                <option value="bfs">BFS · fewest edges</option>
+              </select>
+              <svg class="algo-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div id="route-status" role="status" class="preview-status-feedback">
+            Choose a start and destination to calculate a route.
+          </div>
+        </div>
+
+        <!-- Preview Actions -->
+        <div class="preview-actions-bar">
+          <button id="start-navigation" class="btn-primary-preview" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+            </svg>
+            <span>Start Live Navigation</span>
+          </button>
+          <button id="btn-view-map-preview" class="btn-secondary-preview" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+              <line x1="8" y1="2" x2="8" y2="18"></line>
+              <line x1="16" y1="6" x2="16" y2="22"></line>
+            </svg>
+            <span>View Route on Map</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 5: DEDICATED NAVIGATION SCREEN (The Interactive Map Workspace)
+         ==================================================================== -->
+    <section id="screen-navigation" class="app-screen screen-navigation" hidden>
+      <!-- Interactive Leaflet Map Canvas -->
+      <div id="map"></div>
+
+      <!-- Navigation Top Bar Controls -->
+      <div class="nav-top-bar">
+        <button id="btn-exit-navigation" class="btn-nav-exit" type="button" title="Exit live navigation" aria-label="Exit navigation">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          <span>Exit Navigation</span>
+        </button>
+
+        <div class="nav-route-pill" id="nav-header-route-pill">
+          <span class="route-pill-dot"></span>
+          <span class="route-pill-text" id="nav-header-route-text">Campus Navigation</span>
+        </div>
+
+        <button id="btn-toggle-layers-sheet" class="btn-nav-layers" type="button" title="Map Layers &amp; Legend" aria-label="Map layers">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          <span>Layers</span>
+        </button>
+      </div>
+
+      <!-- Compact Floating Navigation HUD Card -->
+      <aside class="navigation-hud-card" id="navigation-hud" aria-label="Live Navigation Card">
+        <div class="hud-header">
+          <div class="hud-route-summary">
+            <div class="hud-endpoint" id="hud-source-label">Departure</div>
+            <div class="hud-arrow">&rarr;</div>
+            <div class="hud-endpoint dest" id="hud-dest-label">Destination</div>
+          </div>
+          <div class="hud-metric-badge" id="hud-distance-badge">--</div>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div id="navigation-controls" class="hud-actions-group" hidden>
+          <div class="hud-button-row">
+            <button id="recenter-location" type="button" class="btn-hud-control btn-recenter">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+              </svg>
+              <span>Recenter</span>
+            </button>
+
+            <button id="follow-location" type="button" class="btn-hud-control btn-follow">Follow location: on</button>
+          </div>
+
+          <div class="hud-button-row">
+            <button id="retry-location" type="button" class="btn-hud-control btn-retry" hidden>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Retry GPS</span>
+            </button>
+
+            <button id="stop-navigation" type="button" class="btn-hud-control btn-stop">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+              </svg>
+              <span>Stop Navigation</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Additional Actions & Telemetry -->
+        <div class="hud-telemetry-section">
+          <div id="gps-status" role="status" class="hud-gps-status">
+            GPS status: no location fix received; routing not accepted.
+          </div>
+          <div class="hud-aux-actions">
+            <button id="clear-route" type="button" class="btn-hud-ghost">Clear route</button>
+          </div>
+        </div>
+
+        <div id="navigation-note" class="hud-disclaimer">
+          GPS navigation uses the existing graph and a 1.4 m/s walking-speed estimate. It is not turn-by-turn guidance.
+        </div>
+      </aside>
+
+      <!-- Floating Layers & Legend Popover / Sheet -->
+      <div class="map-layers-popover" id="map-layers-popover" hidden>
+        <div class="popover-header">
+          <span class="popover-title">Campus Layers &amp; Legend</span>
+          <button id="btn-close-layers-popover" class="btn-close-popover" type="button">&times;</button>
+        </div>
+        <div class="popover-body">
+          <div class="legend-row"><span class="swatch building"></span> <span>Building footprints</span></div>
+          <div class="legend-row"><span class="swatch road"></span> <span>Roads</span></div>
+          <div class="legend-row"><span class="swatch path"></span> <span>Walking paths</span></div>
+          <div class="legend-row"><span class="swatch boundary"></span> <span>Campus boundary</span></div>
+          <div class="legend-row"><span class="swatch landmark"></span> <span>Landmarks</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         MANUAL START MAP PICKER OVERLAY (Activates during map selection)
+         ==================================================================== -->
+    <div id="manual-map-picker-banner" class="manual-picker-banner" hidden>
+      <div class="picker-instructions">
+        <span class="picker-pulse"></span>
+        <span class="picker-text">Click inside the verified campus boundary to set departure pin</span>
+      </div>
+      <div id="manual-start-controls" class="picker-buttons">
+        <button id="confirm-manual-start" class="btn-picker-confirm" type="button">Confirm selected start</button>
+        <button id="cancel-manual-start" class="btn-picker-cancel" type="button">Cancel</button>
+      </div>
+    </div>
+
   </main>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/map.js"></script>
 </body>

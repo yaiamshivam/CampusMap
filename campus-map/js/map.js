@@ -229,8 +229,14 @@ function selectCurrentLocationSource() {
     selectedSource = { kind: 'current-location', properties: { name: 'Current Location' } };
     document.getElementById('source-search').value = 'Current Location';
     document.getElementById('source-results').hidden = true;
+    const gpsMsg = document.getElementById('gps-feedback-msg');
+    if (gpsMsg) {
+        gpsMsg.hidden = false;
+        gpsMsg.textContent = 'Live position selected as departure point.';
+    }
     if (navigation.active && navigation.lastNode) displayRoute();
     else document.getElementById('route-status').textContent = navigation.locationMarker ? 'Current Location selected. Start Navigation to verify the live position and calculate a campus route.' : 'Current Location selected. Start Navigation to request GPS and calculate a campus route.';
+    if (typeof updateFlowUI === 'function') updateFlowUI();
 }
 
 function formatDistance(distance) {
@@ -245,7 +251,7 @@ function displayNavigationRoute(startNode) {
     const result = dijkstra(startNode, destinationMapping.node_id);
     if (!result) { status.textContent = 'No safe route exists from your current graph component to this destination.'; return false; }
     const latlngs = result.nodes.map(id => [graph.nodes.get(id).lat, graph.nodes.get(id).lon]);
-    L.polyline(latlngs, { color: '#1769aa', weight: 7, opacity: 0.95 }).addTo(routeLayer);
+    L.polyline(latlngs, { color: '#0284c7', weight: 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(routeLayer);
     const minutes = result.distance / WALKING_SPEED_MPS / 60;
     status.textContent = `Navigation route: ${formatDistance(result.distance)} · about ${Math.max(1, Math.round(minutes))} min at ${WALKING_SPEED_MPS} m/s`;
     return true;
@@ -272,7 +278,7 @@ function setMarkerTooltip(kind, acceptedForRouting) {
 function animateLocationMarker(target, kind, acceptedForRouting) {
     const targetLatLng = L.latLng(target.lat, target.lon);
     if (!navigation.locationMarker) {
-        navigation.locationMarker = L.circleMarker(targetLatLng, { radius: 9, color: acceptedForRouting ? '#073b6b' : '#8a5a00', weight: 3, fillColor: acceptedForRouting ? '#2b9de8' : '#f0b15a', fillOpacity: 1 }).addTo(map);
+        navigation.locationMarker = L.circleMarker(targetLatLng, { radius: 9, color: acceptedForRouting ? '#0369a1' : '#8a5a00', weight: 3, fillColor: acceptedForRouting ? '#00f0ff' : '#f59e0b', fillOpacity: 1 }).addTo(map);
         navigation.displayKind = kind;
         setMarkerTooltip(kind, acceptedForRouting);
         followMarker(targetLatLng);
@@ -291,7 +297,7 @@ function animateLocationMarker(target, kind, acceptedForRouting) {
         else navigation.animationFrame = null;
     };
     navigation.displayKind = kind;
-    navigation.locationMarker.setStyle({ color: acceptedForRouting ? '#073b6b' : '#8a5a00', fillColor: acceptedForRouting ? '#2b9de8' : '#f0b15a' });
+    navigation.locationMarker.setStyle({ color: acceptedForRouting ? '#0369a1' : '#8a5a00', fillColor: acceptedForRouting ? '#00f0ff' : '#f59e0b' });
     setMarkerTooltip(kind, acceptedForRouting);
     navigation.animationFrame = requestAnimationFrame(render);
 }
@@ -309,7 +315,7 @@ function updateLocationMarker(position, acceptedForRouting = false) {
     navigation.rawPosition = raw;
     navigation.filteredPosition = filteredGpsPosition(raw);
     animateLocationMarker(navigation.filteredPosition, 'filtered', acceptedForRouting);
-    if (!navigation.accuracyCircle) navigation.accuracyCircle = L.circle([raw.lat, raw.lon], { radius: raw.accuracy, color: '#2b9de8', fillColor: '#2b9de8', fillOpacity: 0.12, weight: 1 }).addTo(map);
+    if (!navigation.accuracyCircle) navigation.accuracyCircle = L.circle([raw.lat, raw.lon], { radius: raw.accuracy, color: '#0284c7', fillColor: '#38bdf8', fillOpacity: 0.15, weight: 1.5, dashArray: '4 4' }).addTo(map);
     else navigation.accuracyCircle.setLatLng([raw.lat, raw.lon]).setRadius(raw.accuracy);
     return [raw.lat, raw.lon];
 }
@@ -483,6 +489,9 @@ function stopNavigation() {
     document.getElementById('navigation-controls').hidden = true;
     document.getElementById('start-navigation').hidden = !selectedDestination || !mappingFor(selectedDestination);
     document.getElementById('route-status').textContent = selectedDestination ? 'Navigation stopped. Choose Start Navigation to request GPS again.' : 'Choose a start and destination to calculate a route.';
+    const headerStatus = document.getElementById('header-system-status');
+    if (headerStatus) headerStatus.innerHTML = '<span class="status-indicator-dot"></span><span class="status-indicator-label">Navigation Ready</span>';
+    if (typeof updateFlowUI === 'function') updateFlowUI();
 }
 
 function startNavigation() {
@@ -498,7 +507,11 @@ function startNavigation() {
     updateFollowButton();
     document.getElementById('start-navigation').hidden = true; document.getElementById('navigation-controls').hidden = false; document.getElementById('retry-location').hidden = true;
     document.getElementById('route-status').textContent = 'Requesting your current location…';
+    const headerStatus = document.getElementById('header-system-status');
+    if (headerStatus) headerStatus.innerHTML = '<span class="status-indicator-dot" style="background:#00f0ff;box-shadow:0 0 8px #00f0ff"></span><span class="status-indicator-label">Live GPS Navigation Active</span>';
     updateGpsStatus('Acquiring location', null, false);
+    if (typeof showScreen === 'function') showScreen('screen-navigation');
+    if (typeof updateFlowUI === 'function') updateFlowUI();
     try {
         navigation.watchId = navigator.geolocation.watchPosition(handleGpsPosition, handleGeoError, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
         console.info('CampusPath GPS watcher started', { watcher_started: true });
@@ -520,15 +533,27 @@ function recenterLocation() {
 
 function setManualStartMode(active) {
     navigation.manualStartMode = active;
+    const manualPickerBanner = document.getElementById('manual-map-picker-banner');
+    if (manualPickerBanner) manualPickerBanner.hidden = !active;
     document.getElementById('manual-start-controls').hidden = !active;
     document.getElementById('manual-start').hidden = active;
+    if (active && typeof showScreen === 'function') {
+        showScreen('screen-navigation');
+    }
     map.getContainer().style.cursor = active ? 'crosshair' : '';
+    const headerStatus = document.getElementById('header-system-status');
+    if (headerStatus) {
+        headerStatus.innerHTML = active
+            ? '<span class="status-indicator-dot" style="background:#f59e0b;box-shadow:0 0 8px #f59e0b"></span><span class="status-indicator-label">Setting Start Point</span>'
+            : '<span class="status-indicator-dot"></span><span class="status-indicator-label">Navigation Ready</span>';
+    }
 }
 
 function cancelManualStart() {
     pendingManualStart = null;
     setManualStartMode(false);
     if (navigation.manualMarker) { map.removeLayer(navigation.manualMarker); navigation.manualMarker = null; }
+    if (typeof showScreen === 'function') showScreen('screen-source');
 }
 
 function chooseManualStart(event) {
@@ -558,29 +583,33 @@ function confirmManualStart() {
     setManualStartMode(false);
     document.getElementById('route-status').textContent = 'Selected start point confirmed. Calculating route…';
     displayRoute();
+    if (typeof updateFlowUI === 'function') updateFlowUI();
+    if (typeof showScreen === 'function') showScreen('screen-destination');
 }
 
 function setFeatureMarker(feature, type) {
     const point = representativePoint(feature); if (!point) return;
     const targetLayer = type === 'source' ? sourceLayer : destinationLayer; targetLayer.clearLayers();
-    const marker = L.circleMarker([point[1], point[0]], { radius: 10, color: type === 'source' ? '#245c8c' : '#17324d', weight: 3, fillColor: type === 'source' ? '#66b3e6' : '#f0b15a', fillOpacity: 1 });
+    const marker = L.circleMarker([point[1], point[0]], { radius: 10, color: type === 'source' ? '#0369a1' : '#b45309', weight: 3, fillColor: type === 'source' ? '#38bdf8' : '#f59e0b', fillOpacity: 1 });
     marker.bindTooltip(feature.properties.name, { permanent: true, direction: 'top', offset: [0, -10], className: 'destination-label' });
     marker.bindPopup(popup(feature)); targetLayer.addLayer(marker);
 }
 
 function displayRoute() {
     routeLayer.clearLayers(); const status = document.getElementById('route-status');
-    if (navigation.active && navigation.lastNode) { displayNavigationRoute(navigation.lastNode); return; }
-    if (!selectedSource || !selectedDestination) { status.textContent = 'Choose a start and destination to calculate a route.'; return; }
-    if (selectedSource.kind === 'current-location') { status.textContent = 'Current Location selected. Start Navigation to verify your position before routing.'; return; }
+    if (navigation.active && navigation.lastNode) return displayNavigationRoute(navigation.lastNode);
+    if (!selectedSource || !selectedDestination) { status.textContent = 'Choose a start and destination to calculate a route.'; if (typeof updateFlowUI === 'function') updateFlowUI(); return false; }
+    if (selectedSource.kind === 'current-location') { status.textContent = 'Current Location selected. Start Navigation to verify your position before routing.'; if (typeof updateFlowUI === 'function') updateFlowUI(); return false; }
     const sourceMapping = selectedSource.kind === 'manual-start' ? selectedSource : mappingFor(selectedSource), destinationMapping = mappingFor(selectedDestination);
-    if (!sourceMapping || !destinationMapping) { status.textContent = 'A selected feature has no verified graph-node mapping.'; return; }
+    if (!sourceMapping || !destinationMapping) { status.textContent = 'A selected feature has no verified graph-node mapping.'; if (typeof updateFlowUI === 'function') updateFlowUI(); return false; }
     const algorithm = document.getElementById('route-algorithm').value;
     const result = algorithm === 'bfs' ? bfs(sourceMapping.node_id, destinationMapping.node_id) : dijkstra(sourceMapping.node_id, destinationMapping.node_id);
-    if (!result) { status.textContent = 'No route exists between these graph components.'; return; }
+    if (!result) { status.textContent = 'No route exists between these graph components.'; if (typeof updateFlowUI === 'function') updateFlowUI(); return false; }
     const latlngs = result.nodes.map(id => [graph.nodes.get(id).lat, graph.nodes.get(id).lon]);
-    L.polyline(latlngs, { color: '#1769aa', weight: 6, opacity: 0.9 }).addTo(routeLayer); map.fitBounds(L.latLngBounds(latlngs).pad(0.12));
+    L.polyline(latlngs, { color: '#0284c7', weight: 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(routeLayer); map.fitBounds(L.latLngBounds(latlngs).pad(0.12));
     status.textContent = `${algorithm === 'bfs' ? 'BFS' : 'Dijkstra'} route: ${result.distance < 1000 ? `${result.distance.toFixed(1)} m` : `${(result.distance / 1000).toFixed(2)} km`}${result.edges ? ` · ${result.edges} edges` : ''}`;
+    if (typeof updateFlowUI === 'function') updateFlowUI();
+    return true;
 }
 
 function selectFeature(item, type) {
@@ -600,12 +629,44 @@ function selectFeature(item, type) {
     document.getElementById(type === 'source' ? 'source-search' : 'search').value = item.feature.properties.name;
     document.getElementById(type === 'source' ? 'source-results' : 'destination-results').hidden = true;
     displayRoute();
+    if (typeof updateFlowUI === 'function') updateFlowUI();
+}
+
+function swapLocations() {
+    if (!selectedSource && !selectedDestination) return;
+    if (selectedSource && selectedSource.kind === 'current-location') return;
+    const prevSource = selectedSource;
+    const prevDest = selectedDestination;
+    selectedSource = prevDest;
+    selectedDestination = prevSource;
+    sourceLayer.clearLayers();
+    destinationLayer.clearLayers();
+    if (selectedSource) {
+        setFeatureMarker(selectedSource, 'source');
+        document.getElementById('source-search').value = selectedSource.properties?.name || '';
+    } else {
+        document.getElementById('source-search').value = '';
+    }
+    if (selectedDestination) {
+        setFeatureMarker(selectedDestination, 'destination');
+        document.getElementById('search').value = selectedDestination.properties?.name || '';
+        const hasMapping = Boolean(mappingFor(selectedDestination));
+        document.getElementById('clear-destination').hidden = false;
+        document.getElementById('start-navigation').hidden = !hasMapping;
+    } else {
+        document.getElementById('search').value = '';
+        document.getElementById('clear-destination').hidden = true;
+        document.getElementById('start-navigation').hidden = true;
+    }
+    displayRoute();
+    if (typeof updateFlowUI === 'function') updateFlowUI();
 }
 
 function clearDestination() {
     if (navigation.active) stopNavigation();
     selectedDestination = null; destinationLayer.clearLayers(); routeLayer.clearLayers();
     document.getElementById('search').value = ''; document.getElementById('clear-destination').hidden = true; document.getElementById('start-navigation').hidden = true; displayRoute();
+    if (typeof updateFlowUI === 'function') updateFlowUI();
 }
 
 function bindSearch(inputId, type) {
@@ -656,6 +717,317 @@ function bindSearch(inputId, type) {
     });
 }
 
+// ==========================================================================
+// MULTI-SCREEN CAMPUS NAVIGATION WORKSPACE ARCHITECTURE
+// ==========================================================================
+
+const SCREENS = {
+    WELCOME: 'screen-welcome',
+    SOURCE: 'screen-source',
+    DESTINATION: 'screen-destination',
+    PREVIEW: 'screen-preview',
+    NAVIGATION: 'screen-navigation'
+};
+
+let currentScreen = SCREENS.WELCOME;
+
+let currentCategoryFilter = 'all';
+
+function destinationCategory(feature) {
+    const props = feature.properties || {};
+    const name = String(props.name || '').toLowerCase();
+    if (name.includes('hostel')) return 'hostels';
+    if (props.amenity || props.leisure || name.includes('parking')) return 'dining';
+    return 'academic';
+}
+
+function destinationTag(feature) {
+    const props = feature.properties || {};
+    if (props.amenity) return String(props.amenity).replace(/_/g, ' ');
+    if (props.leisure) return String(props.leisure).replace(/_/g, ' ');
+    if (props.building) return 'Building';
+    return 'Campus location';
+}
+
+function availableDestinations() {
+    const byName = new Map();
+    records.forEach(item => {
+        const name = item.feature.properties?.name?.trim();
+        if (!name || !mappingFor(item.feature)) return;
+        const key = name.toLowerCase();
+        if (!byName.has(key)) byName.set(key, { name, category: destinationCategory(item.feature), tag: destinationTag(item.feature) });
+    });
+    return [...byName.values()].sort((first, second) => first.name.localeCompare(second.name));
+}
+
+function showScreen(screenId) {
+    currentScreen = screenId;
+    document.querySelectorAll('.app-screen').forEach(screen => {
+        if (screen.id === screenId) {
+            screen.hidden = false;
+            screen.classList.add('screen-active');
+        } else {
+            screen.hidden = true;
+            screen.classList.remove('screen-active');
+        }
+    });
+
+    const stepIndicator = document.getElementById('header-step-indicator');
+    const stepLabel = document.getElementById('header-step-label');
+    if (stepIndicator && stepLabel) {
+        if (screenId === SCREENS.SOURCE) {
+            stepIndicator.hidden = false;
+            stepLabel.textContent = 'Step 1 of 3';
+        } else if (screenId === SCREENS.DESTINATION) {
+            stepIndicator.hidden = false;
+            stepLabel.textContent = 'Step 2 of 3';
+        } else if (screenId === SCREENS.PREVIEW) {
+            stepIndicator.hidden = false;
+            stepLabel.textContent = 'Step 3 of 3';
+        } else {
+            stepIndicator.hidden = true;
+        }
+    }
+
+    if (screenId === SCREENS.NAVIGATION) {
+        setTimeout(() => {
+            map.invalidateSize();
+            if (routeLayer.getLayers().length > 0) {
+                const group = L.featureGroup(routeLayer.getLayers());
+                if (group.getBounds().isValid()) {
+                    map.fitBounds(group.getBounds().pad(0.18));
+                }
+            }
+        }, 100);
+    }
+
+    updateFlowUI();
+}
+
+function renderDestinationCards(filterCategory = 'all') {
+    const container = document.getElementById('destinations-grid-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const destinations = availableDestinations();
+    const filtered = filterCategory === 'all'
+        ? destinations
+        : destinations.filter(d => d.category === filterCategory);
+
+    filtered.forEach(dest => {
+        const card = document.createElement('div');
+        card.className = 'dest-quick-card';
+        card.dataset.name = dest.name;
+        if (selectedDestination && selectedDestination.properties?.name === dest.name) {
+            card.classList.add('selected');
+        }
+        const category = dest.category === 'academic' ? 'Academic' : dest.category === 'hostels' ? 'Hostel' : 'Amenity';
+        card.innerHTML = `<span class="dest-card-category">${category}</span><strong class="dest-card-name"></strong><span class="dest-card-tag"></span>`;
+        card.querySelector('.dest-card-name').textContent = dest.name;
+        card.querySelector('.dest-card-tag').textContent = dest.tag;
+        card.addEventListener('click', () => {
+            selectQuickDestination(dest.name);
+        });
+        container.appendChild(card);
+    });
+}
+
+function selectQuickDestination(name) {
+    const match = records.find(r => r.feature.properties?.name?.toLowerCase() === name.toLowerCase());
+    if (match) {
+        selectFeature(match, 'destination');
+        renderDestinationCards(currentCategoryFilter);
+    }
+}
+
+function updateFlowUI() {
+    const departureStatusVal = document.getElementById('departure-status-value');
+    const departureStatusDot = document.getElementById('departure-status-dot');
+    const btnContinueDest = document.getElementById('btn-continue-to-dest');
+    const cardOptGps = document.getElementById('card-opt-gps');
+    const cardOptSearch = document.getElementById('card-opt-search');
+    const cardOptMap = document.getElementById('card-opt-map');
+
+    const sourceName = selectedSource
+        ? (selectedSource.kind === 'current-location' ? 'Live Device Position' : (selectedSource.properties?.name || 'Selected start point'))
+        : null;
+
+    if (departureStatusVal && departureStatusDot) {
+        if (sourceName) {
+            departureStatusVal.textContent = sourceName;
+            departureStatusDot.classList.add('active');
+            if (btnContinueDest) btnContinueDest.disabled = false;
+        } else {
+            departureStatusVal.textContent = 'None selected';
+            departureStatusDot.classList.remove('active');
+            if (btnContinueDest) btnContinueDest.disabled = true;
+        }
+    }
+
+    if (cardOptGps) cardOptGps.classList.toggle('card-selected', selectedSource?.kind === 'current-location');
+    if (cardOptSearch) cardOptSearch.classList.toggle('card-selected', Boolean(selectedSource && selectedSource.kind !== 'current-location' && selectedSource.kind !== 'manual-start'));
+    if (cardOptMap) cardOptMap.classList.toggle('card-selected', selectedSource?.kind === 'manual-start');
+
+    const recapDepName = document.getElementById('recap-departure-name');
+    if (recapDepName) recapDepName.textContent = sourceName || 'Select start';
+
+    const destStatusVal = document.getElementById('destination-status-value');
+    const destStatusDot = document.getElementById('destination-status-dot');
+    const btnFindRoute = document.getElementById('btn-find-route-preview');
+    const destName = selectedDestination ? (selectedDestination.properties?.name || 'Destination') : null;
+
+    if (destStatusVal && destStatusDot) {
+        if (destName) {
+            destStatusVal.textContent = destName;
+            destStatusDot.classList.add('active');
+            if (btnFindRoute) btnFindRoute.disabled = false;
+        } else {
+            destStatusVal.textContent = 'None selected';
+            destStatusDot.classList.remove('active');
+            if (btnFindRoute) btnFindRoute.disabled = true;
+        }
+    }
+
+    const prevDepName = document.getElementById('preview-departure-name');
+    const prevDestName = document.getElementById('preview-destination-name');
+    const hudSrcLabel = document.getElementById('hud-source-label');
+    const hudDestLabel = document.getElementById('hud-dest-label');
+    const navPillText = document.getElementById('nav-header-route-text');
+
+    if (prevDepName) prevDepName.textContent = sourceName || '--';
+    if (prevDestName) prevDestName.textContent = destName || '--';
+    if (hudSrcLabel) hudSrcLabel.textContent = sourceName || 'Departure';
+    if (hudDestLabel) hudDestLabel.textContent = destName || 'Destination';
+    if (navPillText && sourceName && destName) navPillText.textContent = `${sourceName} → ${destName}`;
+
+    if (selectedSource && selectedDestination) {
+        const sourceMapping = selectedSource.kind === 'manual-start' ? selectedSource : mappingFor(selectedSource);
+        const destinationMapping = mappingFor(selectedDestination);
+        const metricDist = document.getElementById('preview-metric-distance');
+        const metricTime = document.getElementById('preview-metric-time');
+        const hudDistBadge = document.getElementById('hud-distance-badge');
+
+        if (selectedSource.kind === 'current-location') {
+            if (navigation.active && navigation.lastNode && destinationMapping) {
+                const res = dijkstra(navigation.lastNode, destinationMapping.node_id);
+                if (res) {
+                    const distStr = formatDistance(res.distance);
+                    const timeStr = Math.max(1, Math.round(res.distance / WALKING_SPEED_MPS / 60)) + ' min';
+                    if (metricDist) metricDist.textContent = distStr;
+                    if (metricTime) metricTime.textContent = timeStr;
+                    if (hudDistBadge) hudDistBadge.textContent = distStr;
+                }
+            } else {
+                if (metricDist) metricDist.textContent = 'Awaiting GPS';
+                if (metricTime) metricTime.textContent = 'After validation';
+                if (hudDistBadge) hudDistBadge.textContent = 'Awaiting GPS';
+            }
+        } else if (sourceMapping && destinationMapping) {
+            const algorithm = document.getElementById('route-algorithm').value;
+            const res = algorithm === 'bfs'
+                ? bfs(sourceMapping.node_id, destinationMapping.node_id)
+                : dijkstra(sourceMapping.node_id, destinationMapping.node_id);
+            if (res) {
+                const distStr = formatDistance(res.distance);
+                const timeStr = Math.max(1, Math.round(res.distance / WALKING_SPEED_MPS / 60)) + ' min';
+                if (metricDist) metricDist.textContent = distStr;
+                if (metricTime) metricTime.textContent = timeStr;
+                if (hudDistBadge) hudDistBadge.textContent = distStr;
+            } else {
+                if (metricDist) metricDist.textContent = 'Unreachable';
+                if (metricTime) metricTime.textContent = '--';
+                if (hudDistBadge) hudDistBadge.textContent = 'No route';
+            }
+        }
+    }
+}
+
+// Flow Button Event Listeners
+document.getElementById('btn-start-journey')?.addEventListener('click', () => showScreen(SCREENS.SOURCE));
+document.getElementById('btn-browse-destinations')?.addEventListener('click', () => showScreen(SCREENS.DESTINATION));
+document.getElementById('header-brand-trigger')?.addEventListener('click', () => showScreen(SCREENS.WELCOME));
+
+// Screen 2
+document.getElementById('btn-back-source-to-welcome')?.addEventListener('click', () => showScreen(SCREENS.WELCOME));
+document.getElementById('btn-use-live-gps')?.addEventListener('click', () => {
+    selectCurrentLocationSource();
+    setTimeout(() => showScreen(SCREENS.DESTINATION), 350);
+});
+document.getElementById('btn-continue-to-dest')?.addEventListener('click', () => showScreen(SCREENS.DESTINATION));
+
+// Screen 3
+document.getElementById('btn-back-dest-to-source')?.addEventListener('click', () => showScreen(SCREENS.SOURCE));
+document.getElementById('dest-departure-recap')?.addEventListener('click', () => showScreen(SCREENS.SOURCE));
+document.getElementById('btn-find-route-preview')?.addEventListener('click', () => {
+    const routeReady = displayRoute();
+    if (routeReady || selectedSource?.kind === 'current-location') showScreen(SCREENS.PREVIEW);
+});
+
+// Category Filter Tabs in Screen 3
+document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentCategoryFilter = tab.dataset.category || 'all';
+        renderDestinationCards(currentCategoryFilter);
+    });
+});
+
+// Screen 4
+document.getElementById('btn-back-preview-to-dest')?.addEventListener('click', () => showScreen(SCREENS.DESTINATION));
+document.getElementById('btn-change-source')?.addEventListener('click', () => showScreen(SCREENS.SOURCE));
+document.getElementById('btn-change-destination')?.addEventListener('click', () => showScreen(SCREENS.DESTINATION));
+document.getElementById('btn-view-map-preview')?.addEventListener('click', () => showScreen(SCREENS.NAVIGATION));
+
+// Screen 5
+document.getElementById('btn-exit-navigation')?.addEventListener('click', () => showScreen(SCREENS.PREVIEW));
+document.getElementById('btn-toggle-layers-sheet')?.addEventListener('click', () => {
+    const pop = document.getElementById('map-layers-popover');
+    if (pop) pop.hidden = !pop.hidden;
+});
+document.getElementById('btn-close-layers-popover')?.addEventListener('click', () => {
+    const pop = document.getElementById('map-layers-popover');
+    if (pop) pop.hidden = true;
+});
+
+// Core Controls Event Listeners
+document.getElementById('clear-destination').addEventListener('click', clearDestination);
+document.getElementById('clear-route').addEventListener('click', () => {
+    routeLayer.clearLayers();
+    document.getElementById('route-status').textContent = 'Route cleared. Choose both locations to calculate again.';
+    updateFlowUI();
+});
+document.getElementById('route-algorithm').addEventListener('change', () => {
+    displayRoute();
+    updateFlowUI();
+});
+document.getElementById('start-navigation').addEventListener('click', () => {
+    if (selectedSource && selectedSource.kind === 'current-location') {
+        startNavigation();
+    } else {
+        displayRoute();
+        showScreen(SCREENS.NAVIGATION);
+    }
+});
+document.getElementById('stop-navigation').addEventListener('click', stopNavigation);
+document.getElementById('retry-location').addEventListener('click', retryNavigation);
+document.getElementById('recenter-location').addEventListener('click', recenterLocation);
+document.getElementById('follow-location').addEventListener('click', () => {
+    navigation.followLocation = !navigation.followLocation;
+    updateFollowButton();
+    if (navigation.followLocation && navigation.locationMarker) map.panTo(navigation.locationMarker.getLatLng(), { animate: true, duration: 0.25 });
+});
+document.getElementById('manual-start').addEventListener('click', () => {
+    setManualStartMode(true);
+    document.getElementById('route-status').textContent = 'Click inside the campus boundary to choose a start point.';
+});
+document.getElementById('confirm-manual-start').addEventListener('click', confirmManualStart);
+document.getElementById('cancel-manual-start').addEventListener('click', cancelManualStart);
+map.on('click', chooseManualStart);
+
+const swapButton = document.getElementById('swap-locations');
+if (swapButton) swapButton.addEventListener('click', swapLocations);
+
+// Initialize Destination Cards and Welcome Screen on Layer Load
 loadGraph().then(() => Promise.all([
     loadLayer('buildings', 'buildings.geojson', { style: styleBuilding, onEachFeature: (feature, layer) => layer.bindPopup(popup(feature)) }),
     loadLayer('roads', 'roads.geojson', { style: styleRoad, onEachFeature: (feature, layer) => layer.bindPopup(popup(feature)) }),
@@ -666,24 +1038,10 @@ loadGraph().then(() => Promise.all([
     L.control.layers(null, { Buildings: layers.buildings, Roads: layers.roads, 'Walking paths': layers.paths, Landmarks: layers.landmarks, 'Campus boundary': layers['campus boundary'] }, { collapsed: false }).addTo(map);
     const boundary = layers['campus boundary'].getBounds(); if (boundary.isValid()) map.fitBounds(boundary.pad(0.08));
     bindSearch('source-search', 'source'); bindSearch('search', 'destination');
+    renderDestinationCards('all');
+    showScreen(SCREENS.WELCOME);
 }).catch(error => { console.error('Campus map loading failed:', error); document.getElementById('route-status').textContent = error.message; });
 
-document.getElementById('clear-destination').addEventListener('click', clearDestination);
-document.getElementById('clear-route').addEventListener('click', () => { routeLayer.clearLayers(); document.getElementById('route-status').textContent = 'Route cleared. Choose both locations to calculate again.'; });
-document.getElementById('route-algorithm').addEventListener('change', displayRoute);
-document.getElementById('start-navigation').addEventListener('click', startNavigation);
-document.getElementById('stop-navigation').addEventListener('click', stopNavigation);
-document.getElementById('retry-location').addEventListener('click', retryNavigation);
-document.getElementById('recenter-location').addEventListener('click', recenterLocation);
-document.getElementById('follow-location').addEventListener('click', () => {
-    navigation.followLocation = !navigation.followLocation;
-    updateFollowButton();
-    if (navigation.followLocation && navigation.locationMarker) map.panTo(navigation.locationMarker.getLatLng(), { animate: true, duration: 0.25 });
-});
-document.getElementById('manual-start').addEventListener('click', () => { setManualStartMode(true); document.getElementById('route-status').textContent = 'Click inside the campus boundary to choose a start point.'; });
-document.getElementById('confirm-manual-start').addEventListener('click', confirmManualStart);
-document.getElementById('cancel-manual-start').addEventListener('click', cancelManualStart);
-map.on('click', chooseManualStart);
 window.addEventListener('beforeunload', () => {
     if (navigation.watchId !== null) navigator.geolocation.clearWatch(navigation.watchId);
     if (navigation.animationFrame) cancelAnimationFrame(navigation.animationFrame);
