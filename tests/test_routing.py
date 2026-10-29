@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from routing import boundary_state, bfs, dijkstra, haversine_m, point_in_geometry, snap_features, snap_point
+from routing import boundary_state, bfs, dijkstra, gps_fix_quality, haversine_m, point_in_geometry, short_prediction, smooth_point, snap_features, snap_point
 
 
 class RoutingTests(unittest.TestCase):
@@ -55,6 +55,34 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(boundary_state([0.02, 0.005], 10, square), "outside")
         self.assertEqual(boundary_state([0.00001, 0.00001], 10, square), "uncertain")
         self.assertEqual(boundary_state([0.005, 0.005], 241, square), "uncertain")
+
+    def test_gps_fix_quality_rejects_stale_low_accuracy_and_jump(self):
+        point = [76.57411, 30.76846]
+        self.assertEqual(gps_fix_quality(point, 10, 0, 60_001)["reason"], "stale")
+        self.assertEqual(gps_fix_quality(point, 241, 1_000, 1_000)["reason"], "low_accuracy")
+        previous = {"point": point, "timestamp_ms": 1_000}
+        self.assertEqual(gps_fix_quality([76.58411, 30.76846], 10, 1_100, 1_100, previous)["reason"], "jump")
+
+    def test_repeated_stationary_fix_remains_accepted(self):
+        point = [76.57411, 30.76846]
+        previous = {"point": point, "timestamp_ms": 1_000}
+        quality = gps_fix_quality(point, 10, 2_000, 2_000, previous)
+        self.assertTrue(quality["accepted"])
+        self.assertTrue(quality["repeated"])
+
+    def test_display_smoothing_reduces_jitter_without_replacing_measurement(self):
+        raw = [76.57420, 30.76846]
+        filtered = smooth_point([76.57410, 30.76846], raw)
+        self.assertNotEqual(filtered, raw)
+        self.assertGreater(filtered[0], 76.57410)
+        self.assertLess(filtered[0], raw[0])
+
+    def test_short_prediction_expires_and_rejects_stationary_data(self):
+        previous = {"point": [76.57410, 30.76846], "timestamp_ms": 0}
+        current = {"point": [76.57411, 30.76846], "timestamp_ms": 2_000}
+        self.assertIsNotNone(short_prediction(previous, current, 2_500, 10))
+        self.assertIsNone(short_prediction(previous, current, 5_001, 10))
+        self.assertIsNone(short_prediction(previous, {"point": previous["point"], "timestamp_ms": 2_000}, 2_500, 10))
 
 
 if __name__ == "__main__":

@@ -8,6 +8,11 @@ from pathlib import Path
 
 EARTH_RADIUS_M = 6_371_008.8
 GPS_MAX_ACCURACY_M = 100
+GPS_STALE_FIX_MS = 60_000
+GPS_MAX_JUMP_SPEED_MPS = 30
+GPS_PREDICTION_MAX_MS = 3_000
+GPS_PREDICTION_MIN_SPEED_MPS = 0.4
+GPS_PREDICTION_MAX_SPEED_MPS = 3.5
 
 
 def haversine_m(first, second):
@@ -175,6 +180,49 @@ def boundary_state(point, accuracy_m, geometry):
         if min(haversine_m(point, vertex) for vertex in vertices) <= accuracy_m:
             return "uncertain"
     return "inside" if inside else "outside"
+
+
+def gps_fix_quality(point, accuracy_m, timestamp_ms, now_ms, previous=None):
+    """Assess browser-provided GPS data without changing its raw coordinates.
+
+    Repeated coordinates are accepted because a stationary user can legitimately report
+    the same position; stale timestamps, poor accuracy, and implausible jumps are not.
+    """
+    if accuracy_m is None or accuracy_m > GPS_MAX_ACCURACY_M:
+        return {"accepted": False, "reason": "low_accuracy", "repeated": False}
+    if timestamp_ms is None or now_ms - timestamp_ms > GPS_STALE_FIX_MS:
+        return {"accepted": False, "reason": "stale", "repeated": False}
+    repeated = previous is not None and point == previous["point"]
+    if previous is not None and not repeated:
+        elapsed_ms = timestamp_ms - previous["timestamp_ms"]
+        distance = haversine_m(point, previous["point"])
+        speed = distance / (elapsed_ms / 1000) if elapsed_ms > 0 else math.inf
+        if speed > GPS_MAX_JUMP_SPEED_MPS:
+            return {"accepted": False, "reason": "jump", "repeated": False}
+    return {"accepted": True, "reason": "valid", "repeated": repeated}
+
+
+def smooth_point(previous, current, alpha=0.45):
+    """Display-only exponential smoothing; it does not change GPS/routing data."""
+    if previous is None:
+        return list(current)
+    return [previous[0] + (current[0] - previous[0]) * alpha, previous[1] + (current[1] - previous[1]) * alpha]
+
+
+def short_prediction(previous, current, now_ms, accuracy_m):
+    """Conservatively predict a point for display only, or return None."""
+    elapsed_ms = current["timestamp_ms"] - previous["timestamp_ms"]
+    future_ms = now_ms - current["timestamp_ms"]
+    if accuracy_m > 50 or elapsed_ms <= 0 or future_ms < 0 or future_ms > GPS_PREDICTION_MAX_MS:
+        return None
+    speed = haversine_m(previous["point"], current["point"]) / (elapsed_ms / 1000)
+    if not GPS_PREDICTION_MIN_SPEED_MPS <= speed <= GPS_PREDICTION_MAX_SPEED_MPS:
+        return None
+    factor = future_ms / elapsed_ms
+    return [
+        current["point"][0] + (current["point"][0] - previous["point"][0]) * factor,
+        current["point"][1] + (current["point"][1] - previous["point"][1]) * factor,
+    ]
 
 
 def write_mapping(path, mappings, unmapped, max_distance_m):

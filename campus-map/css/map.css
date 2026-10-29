@@ -29,6 +29,8 @@ main { height: calc(100vh - 62px); position: relative; }
 .route-controls button { cursor: pointer; font-weight: 600; }
 #start-navigation { background: #1769aa; color: white; border-color: #1769aa; }
 #navigation-controls { display: grid; gap: 7px; }
+#manual-start-controls { display: grid; gap: 7px; }
+.manual-start-marker { color: #6b3f00; }
 #navigation-note { color: #6b7b86; font-size: 11px; line-height: 1.35; }
 #gps-status { color: #52677a; font-size: 11px; line-height: 1.35; }
 #route-status { color: #52677a; line-height: 1.35; }

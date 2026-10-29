@@ -15,9 +15,16 @@ let featureMapping = new Map();
 let campusBoundaryGeometry = null;
 let selectedSource = null;
 let selectedDestination = null;
+let pendingManualStart = null;
 const palette = { building: '#dfe7eb', path: '#a86cd1', landmark: '#c54448' };
 const GPS_MAX_SNAP_DISTANCE_M = 150;
 const GPS_MAX_ACCURACY_M = 100;
+const GPS_STALE_FIX_MS = 60_000;
+const GPS_MAX_JUMP_SPEED_MPS = 30;
+const GPS_DISPLAY_SMOOTHING = 0.45;
+const GPS_PREDICTION_MAX_MS = 3_000;
+const GPS_PREDICTION_MIN_SPEED_MPS = 0.4;
+const GPS_PREDICTION_MAX_SPEED_MPS = 3.5;
 const WALKING_SPEED_MPS = 1.4;
 const navigation = {
     active: false,
@@ -26,7 +33,20 @@ const navigation = {
     lastRoutePosition: null,
     lastRecalculation: 0,
     locationMarker: null,
-    accuracyCircle: null
+    accuracyCircle: null,
+    lastFix: null,
+    unchangedFixCount: 0,
+    manualMarker: null,
+    manualStartMode: false,
+    rawPosition: null,
+    filteredPosition: null,
+    previousAcceptedPosition: null,
+    acceptedAt: null,
+    displayKind: 'none',
+    animationFrame: null,
+    predictionFrame: null,
+    followLocation: true,
+    followBound: false
 };
 
 function popup(feature) {
@@ -205,6 +225,7 @@ function snapGpsToNode(latitude, longitude) {
 function mappingFor(feature) { return feature?.id ? featureMapping.get(feature.id) : null; }
 
 function selectCurrentLocationSource() {
+    cancelManualStart();
     selectedSource = { kind: 'current-location', properties: { name: 'Current Location' } };
     document.getElementById('source-search').value = 'Current Location';
     document.getElementById('source-results').hidden = true;
@@ -230,25 +251,134 @@ function displayNavigationRoute(startNode) {
     return true;
 }
 
-function updateLocationMarker(position, acceptedForRouting = false) {
-    const latlng = [position.coords.latitude, position.coords.longitude];
-    const accuracy = Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null;
+function updateFollowButton() {
+    document.getElementById('follow-location').textContent = `Follow location: ${navigation.followLocation ? 'on' : 'off'}`;
+}
+
+function followMarker(latlng) {
+    if (navigation.followLocation) map.panTo(latlng, { animate: true, duration: 0.25 });
+}
+
+function setMarkerTooltip(kind, acceptedForRouting) {
+    if (!navigation.locationMarker) return;
+    const labels = {
+        filtered: 'Filtered display from current GPS fix',
+        predicted: 'Predicted display from last confirmed GPS fix',
+        raw: 'Raw GPS display'
+    };
+    navigation.locationMarker.setTooltipContent(`${labels[kind] || 'GPS display'} · ${acceptedForRouting ? 'accepted for campus routing' : 'not accepted for campus routing'}`);
+}
+
+function animateLocationMarker(target, kind, acceptedForRouting) {
+    const targetLatLng = L.latLng(target.lat, target.lon);
     if (!navigation.locationMarker) {
-        navigation.locationMarker = L.circleMarker(latlng, { radius: 9, color: acceptedForRouting ? '#073b6b' : '#8a5a00', weight: 3, fillColor: acceptedForRouting ? '#2b9de8' : '#f0b15a', fillOpacity: 1 }).bindTooltip('', { permanent: false });
-        navigation.locationMarker.addTo(map);
-        if (accuracy !== null) navigation.accuracyCircle = L.circle(latlng, { radius: accuracy, color: '#2b9de8', fillColor: '#2b9de8', fillOpacity: 0.12, weight: 1 }).addTo(map);
-    } else {
-        navigation.locationMarker.setLatLng(latlng);
-        if (accuracy !== null && navigation.accuracyCircle) navigation.accuracyCircle.setLatLng(latlng).setRadius(accuracy);
+        navigation.locationMarker = L.circleMarker(targetLatLng, { radius: 9, color: acceptedForRouting ? '#073b6b' : '#8a5a00', weight: 3, fillColor: acceptedForRouting ? '#2b9de8' : '#f0b15a', fillOpacity: 1 }).addTo(map);
+        navigation.displayKind = kind;
+        setMarkerTooltip(kind, acceptedForRouting);
+        followMarker(targetLatLng);
+        return;
     }
+    if (navigation.animationFrame) cancelAnimationFrame(navigation.animationFrame);
+    const start = navigation.locationMarker.getLatLng();
+    const startedAt = performance.now();
+    const render = now => {
+        const progress = Math.min(1, (now - startedAt) / 300);
+        const eased = progress * (2 - progress);
+        const latlng = L.latLng(start.lat + (target.lat - start.lat) * eased, start.lng + (target.lon - start.lon) * eased);
+        navigation.locationMarker.setLatLng(latlng);
+        followMarker(latlng);
+        if (progress < 1) navigation.animationFrame = requestAnimationFrame(render);
+        else navigation.animationFrame = null;
+    };
+    navigation.displayKind = kind;
     navigation.locationMarker.setStyle({ color: acceptedForRouting ? '#073b6b' : '#8a5a00', fillColor: acceptedForRouting ? '#2b9de8' : '#f0b15a' });
-    navigation.locationMarker.setTooltipContent(acceptedForRouting ? 'Your location · accepted for campus routing' : 'Your raw GPS location · not accepted for campus routing');
-    return latlng;
+    setMarkerTooltip(kind, acceptedForRouting);
+    navigation.animationFrame = requestAnimationFrame(render);
+}
+
+function filteredGpsPosition(raw) {
+    if (!navigation.filteredPosition) return { lat: raw.lat, lon: raw.lon };
+    return {
+        lat: navigation.filteredPosition.lat + (raw.lat - navigation.filteredPosition.lat) * GPS_DISPLAY_SMOOTHING,
+        lon: navigation.filteredPosition.lon + (raw.lon - navigation.filteredPosition.lon) * GPS_DISPLAY_SMOOTHING
+    };
+}
+
+function updateLocationMarker(position, acceptedForRouting = false) {
+    const raw = { lat: Number(position.coords.latitude), lon: Number(position.coords.longitude), accuracy: Number(position.coords.accuracy), timestamp: Number(position.timestamp) };
+    navigation.rawPosition = raw;
+    navigation.filteredPosition = filteredGpsPosition(raw);
+    animateLocationMarker(navigation.filteredPosition, 'filtered', acceptedForRouting);
+    if (!navigation.accuracyCircle) navigation.accuracyCircle = L.circle([raw.lat, raw.lon], { radius: raw.accuracy, color: '#2b9de8', fillColor: '#2b9de8', fillOpacity: 0.12, weight: 1 }).addTo(map);
+    else navigation.accuracyCircle.setLatLng([raw.lat, raw.lon]).setRadius(raw.accuracy);
+    return [raw.lat, raw.lon];
 }
 
 function updateGpsStatus(message, accuracy, acceptedForRouting) {
-    const accuracyText = Number.isFinite(accuracy) ? `${Math.round(accuracy)} m accuracy` : 'accuracy unavailable';
-    document.getElementById('gps-status').textContent = `GPS status: ${message} · ${accuracyText} · routing ${acceptedForRouting ? 'accepted' : 'not accepted'}.`;
+    const accuracyText = Number.isFinite(accuracy) ? `${Math.round(accuracy)} m reported accuracy estimate` : 'accuracy unavailable';
+    document.getElementById('gps-status').textContent = `GPS status: ${message} · ${accuracyText} · display ${navigation.displayKind} · routing ${acceptedForRouting ? 'accepted' : 'not accepted'}.`;
+}
+
+function stopPrediction() {
+    if (navigation.predictionFrame) cancelAnimationFrame(navigation.predictionFrame);
+    navigation.predictionFrame = null;
+}
+
+function startShortPrediction(current) {
+    stopPrediction();
+    if (navigation.animationFrame) { cancelAnimationFrame(navigation.animationFrame); navigation.animationFrame = null; }
+    const previous = navigation.previousAcceptedPosition;
+    const elapsedMs = previous ? current.timestamp - previous.timestamp : 0;
+    if (!previous || !Number.isFinite(elapsedMs) || elapsedMs <= 0 || current.accuracy > 50) return;
+    const distance = haversineMeters(current, previous);
+    const speed = distance / (elapsedMs / 1000);
+    if (speed < GPS_PREDICTION_MIN_SPEED_MPS || speed > GPS_PREDICTION_MAX_SPEED_MPS) return;
+    const startedAt = performance.now();
+    const render = now => {
+        if (!navigation.active || now - startedAt > GPS_PREDICTION_MAX_MS || Date.now() - current.timestamp > GPS_STALE_FIX_MS) { navigation.predictionFrame = null; return; }
+        const futureMs = now - startedAt;
+        const predicted = {
+            lat: current.lat + (current.lat - previous.lat) * (futureMs / elapsedMs),
+            lon: current.lon + (current.lon - previous.lon) * (futureMs / elapsedMs)
+        };
+        navigation.displayKind = 'predicted';
+        navigation.locationMarker.setLatLng([predicted.lat, predicted.lon]);
+        navigation.locationMarker.setStyle({ color: '#4c3b8f', fillColor: '#9c7ce8' });
+        setMarkerTooltip('predicted', true);
+        followMarker([predicted.lat, predicted.lon]);
+        document.getElementById('gps-status').textContent = `GPS status: short-term predicted display · ${Math.round(current.accuracy)} m reported accuracy estimate from the last confirmed fix · routing remains based on the last confirmed GPS fix.`;
+        navigation.predictionFrame = requestAnimationFrame(render);
+    };
+    navigation.predictionFrame = requestAnimationFrame(render);
+}
+
+function handleMapDragStart() {
+    if (!navigation.followLocation) return;
+    navigation.followLocation = false;
+    updateFollowButton();
+    document.getElementById('gps-status').textContent += ' Follow paused after manual map movement.';
+}
+
+function recordGpsFix(position) {
+    const receivedAt = Date.now();
+    const timestamp = Number(position.timestamp);
+    const coordinates = [Number(position.coords.latitude), Number(position.coords.longitude)];
+    const previous = navigation.lastFix;
+    const unchanged = previous && coordinates[0] === previous.coordinates[0] && coordinates[1] === previous.coordinates[1];
+    navigation.unchangedFixCount = unchanged ? navigation.unchangedFixCount + 1 : 0;
+    const ageMs = Number.isFinite(timestamp) ? Math.max(0, receivedAt - timestamp) : Infinity;
+    const elapsedMs = previous && Number.isFinite(timestamp) && Number.isFinite(previous.timestamp) ? timestamp - previous.timestamp : null;
+    const jumpDistanceM = previous ? haversineMeters({ lat: coordinates[0], lon: coordinates[1] }, { lat: previous.coordinates[0], lon: previous.coordinates[1] }) : 0;
+    const jumpSpeedMps = elapsedMs && elapsedMs > 0 ? jumpDistanceM / (elapsedMs / 1000) : (previous && !unchanged ? Infinity : 0);
+    navigation.lastFix = { timestamp, coordinates };
+    if (navigation.unchangedFixCount >= 3) console.info('CampusPath GPS coordinates are unchanged; this can be normal for a stationary user.', { unchanged_fix_count: navigation.unchangedFixCount });
+    return {
+        unchanged,
+        stale: ageMs > GPS_STALE_FIX_MS,
+        ageMs,
+        jump: jumpSpeedMps > GPS_MAX_JUMP_SPEED_MPS,
+        jumpSpeedMps
+    };
 }
 
 function handleGpsPosition(position) {
@@ -263,15 +393,32 @@ function handleGpsPosition(position) {
         return;
     }
     console.info('CampusPath GPS fix received', { accuracy_m: Number.isFinite(accuracy) ? Math.round(accuracy) : null });
+    const fix = recordGpsFix(position);
+    stopPrediction();
     const firstFix = !navigation.locationMarker;
     const latlng = updateLocationMarker(position, false);
     if (firstFix) map.setView(latlng, 15);
     const status = document.getElementById('route-status');
+    if (fix.stale) {
+        routeLayer.clearLayers(); navigation.lastNode = null; navigation.lastRoutePosition = null;
+        status.textContent = `GPS fix is stale (${Math.round(fix.ageMs / 1000)} seconds old). Waiting for a current location before routing.`;
+        updateGpsStatus('Fix received but is stale', accuracy, false);
+        document.getElementById('retry-location').hidden = false;
+        return;
+    }
+    if (fix.jump) {
+        routeLayer.clearLayers(); navigation.lastNode = null; navigation.lastRoutePosition = null;
+        status.textContent = 'GPS position changed implausibly fast. Waiting for a stable location before routing.';
+        updateGpsStatus('Fix received but rejected as an implausible jump', accuracy, false);
+        console.warn('CampusPath GPS jump rejected for routing', { speed_mps: Math.round(fix.jumpSpeedMps) });
+        document.getElementById('retry-location').hidden = false;
+        return;
+    }
     if (!Number.isFinite(accuracy) || accuracy > GPS_MAX_ACCURACY_M) {
         const message = 'GPS accuracy is too low to determine whether you are inside campus. Waiting for a more accurate location.';
         routeLayer.clearLayers(); navigation.lastNode = null; navigation.lastRoutePosition = null;
         status.textContent = message;
-        updateGpsStatus('Fix received but too inaccurate for campus classification', accuracy, false);
+        updateGpsStatus(fix.unchanged ? 'Stationary coordinates repeated, but accuracy is too low for campus classification' : 'Fix received but too inaccurate for campus classification', accuracy, false);
         document.getElementById('retry-location').hidden = false;
         return;
     }
@@ -298,7 +445,7 @@ function handleGpsPosition(position) {
         return;
     }
     updateLocationMarker(position, true);
-    updateGpsStatus('Fix is inside the verified campus boundary', accuracy, true);
+    updateGpsStatus(fix.unchanged ? 'Fix is inside campus; repeated coordinates are consistent with a stationary user' : 'Fix is inside the verified campus boundary', accuracy, true);
     const now = Date.now();
     const movedEnough = !navigation.lastRoutePosition || haversineMeters({ lat: latlng[0], lon: latlng[1] }, { lat: navigation.lastRoutePosition[0], lon: navigation.lastRoutePosition[1] }) >= 20;
     const canRecalculate = !navigation.lastNode || (snapped.nodeId !== navigation.lastNode && movedEnough && now - navigation.lastRecalculation >= 5000);
@@ -309,6 +456,9 @@ function handleGpsPosition(position) {
         if (!displayNavigationRoute(snapped.nodeId)) document.getElementById('retry-location').hidden = false;
         else document.getElementById('retry-location').hidden = true;
     }
+    const acceptedPosition = { lat: latitude, lon: longitude, timestamp: Number(position.timestamp), accuracy };
+    startShortPrediction(acceptedPosition);
+    navigation.previousAcceptedPosition = acceptedPosition;
 }
 
 function handleGeoError(error) {
@@ -323,7 +473,10 @@ function handleGeoError(error) {
 
 function stopNavigation() {
     if (navigation.watchId !== null) navigator.geolocation.clearWatch(navigation.watchId);
-    navigation.active = false; navigation.watchId = null; navigation.lastNode = null; navigation.lastRoutePosition = null; navigation.lastRecalculation = 0;
+    if (navigation.animationFrame) cancelAnimationFrame(navigation.animationFrame);
+    stopPrediction();
+    if (navigation.followBound) { map.off('dragstart', handleMapDragStart); navigation.followBound = false; }
+    navigation.active = false; navigation.watchId = null; navigation.lastNode = null; navigation.lastRoutePosition = null; navigation.lastRecalculation = 0; navigation.lastFix = null; navigation.unchangedFixCount = 0; navigation.rawPosition = null; navigation.filteredPosition = null; navigation.previousAcceptedPosition = null; navigation.displayKind = 'none'; navigation.animationFrame = null;
     if (navigation.locationMarker) map.removeLayer(navigation.locationMarker);
     if (navigation.accuracyCircle) map.removeLayer(navigation.accuracyCircle);
     navigation.locationMarker = null; navigation.accuracyCircle = null; routeLayer.clearLayers();
@@ -340,14 +493,15 @@ function startNavigation() {
     const allowedLocalhost = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
     if (!window.isSecureContext && !allowedLocalhost) { document.getElementById('route-status').textContent = 'GPS requires HTTPS or localhost. Open CampusPath from a secure local server.'; return; }
     if (navigation.watchId !== null) navigator.geolocation.clearWatch(navigation.watchId);
-    navigation.active = true; navigation.watchId = null; navigation.lastNode = null; navigation.lastRoutePosition = null; navigation.lastRecalculation = 0;
+    navigation.active = true; navigation.watchId = null; navigation.lastNode = null; navigation.lastRoutePosition = null; navigation.lastRecalculation = 0; navigation.lastFix = null; navigation.unchangedFixCount = 0; navigation.rawPosition = null; navigation.filteredPosition = null; navigation.previousAcceptedPosition = null; navigation.displayKind = 'none'; navigation.followLocation = true;
+    if (!navigation.followBound) { map.on('dragstart', handleMapDragStart); navigation.followBound = true; }
+    updateFollowButton();
     document.getElementById('start-navigation').hidden = true; document.getElementById('navigation-controls').hidden = false; document.getElementById('retry-location').hidden = true;
     document.getElementById('route-status').textContent = 'Requesting your current location…';
     updateGpsStatus('Acquiring location', null, false);
     try {
         navigation.watchId = navigator.geolocation.watchPosition(handleGpsPosition, handleGeoError, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
         console.info('CampusPath GPS watcher started', { watcher_started: true });
-        navigator.geolocation.getCurrentPosition(handleGpsPosition, handleGeoError, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
     } catch (error) {
         console.error('CampusPath could not start geolocation', error);
         handleGeoError({ code: 2, message: error.message });
@@ -360,8 +514,50 @@ function retryNavigation() {
 }
 
 function recenterLocation() {
-    if (navigation.locationMarker) map.setView(navigation.locationMarker.getLatLng(), Math.max(map.getZoom(), 17));
+    if (navigation.locationMarker) { navigation.followLocation = true; updateFollowButton(); map.setView(navigation.locationMarker.getLatLng(), Math.max(map.getZoom(), 17)); }
     else document.getElementById('route-status').textContent = 'Waiting for a GPS fix. Keep navigation active or use Retry GPS.';
+}
+
+function setManualStartMode(active) {
+    navigation.manualStartMode = active;
+    document.getElementById('manual-start-controls').hidden = !active;
+    document.getElementById('manual-start').hidden = active;
+    map.getContainer().style.cursor = active ? 'crosshair' : '';
+}
+
+function cancelManualStart() {
+    pendingManualStart = null;
+    setManualStartMode(false);
+    if (navigation.manualMarker) { map.removeLayer(navigation.manualMarker); navigation.manualMarker = null; }
+}
+
+function chooseManualStart(event) {
+    if (!navigation.manualStartMode) return;
+    if (campusBoundaryGeometry && pointInBoundary([event.latlng.lng, event.latlng.lat], campusBoundaryGeometry) !== true) {
+        document.getElementById('route-status').textContent = 'Selected start point must be inside the verified campus boundary.';
+        return;
+    }
+    const snapped = snapGpsToNode(event.latlng.lat, event.latlng.lng);
+    if (!snapped) {
+        document.getElementById('route-status').textContent = `No suitable campus graph node is within ${GPS_MAX_SNAP_DISTANCE_M} m of that selected start point.`;
+        return;
+    }
+    pendingManualStart = { nodeId: snapped.nodeId, distance: snapped.distance, latlng: event.latlng };
+    if (navigation.manualMarker) map.removeLayer(navigation.manualMarker);
+    navigation.manualMarker = L.circleMarker(event.latlng, { radius: 9, color: '#6b3f00', weight: 3, fillColor: '#f0b15a', fillOpacity: 1 }).bindTooltip('Selected start point (pending)', { permanent: true, direction: 'top' }).addTo(map);
+    document.getElementById('route-status').textContent = `Start point selected (${Math.round(snapped.distance)} m from graph node). Confirm it to calculate a route.`;
+}
+
+function confirmManualStart() {
+    if (!pendingManualStart) return;
+    if (navigation.active) stopNavigation();
+    selectedSource = { kind: 'manual-start', nodeId: pendingManualStart.nodeId, latlng: pendingManualStart.latlng, properties: { name: 'Selected start point' } };
+    document.getElementById('source-search').value = 'Selected start point';
+    document.getElementById('source-results').hidden = true;
+    if (navigation.manualMarker) navigation.manualMarker.setTooltipContent('Selected start point');
+    setManualStartMode(false);
+    document.getElementById('route-status').textContent = 'Selected start point confirmed. Calculating route…';
+    displayRoute();
 }
 
 function setFeatureMarker(feature, type) {
@@ -377,7 +573,7 @@ function displayRoute() {
     if (navigation.active && navigation.lastNode) { displayNavigationRoute(navigation.lastNode); return; }
     if (!selectedSource || !selectedDestination) { status.textContent = 'Choose a start and destination to calculate a route.'; return; }
     if (selectedSource.kind === 'current-location') { status.textContent = 'Current Location selected. Start Navigation to verify your position before routing.'; return; }
-    const sourceMapping = mappingFor(selectedSource), destinationMapping = mappingFor(selectedDestination);
+    const sourceMapping = selectedSource.kind === 'manual-start' ? selectedSource : mappingFor(selectedSource), destinationMapping = mappingFor(selectedDestination);
     if (!sourceMapping || !destinationMapping) { status.textContent = 'A selected feature has no verified graph-node mapping.'; return; }
     const algorithm = document.getElementById('route-algorithm').value;
     const result = algorithm === 'bfs' ? bfs(sourceMapping.node_id, destinationMapping.node_id) : dijkstra(sourceMapping.node_id, destinationMapping.node_id);
@@ -390,6 +586,7 @@ function displayRoute() {
 function selectFeature(item, type) {
     if (type === 'source') {
         if (navigation.active) stopNavigation();
+        cancelManualStart();
         selectedSource = item.feature; setFeatureMarker(item.feature, 'source');
     }
     else {
@@ -478,7 +675,21 @@ document.getElementById('start-navigation').addEventListener('click', startNavig
 document.getElementById('stop-navigation').addEventListener('click', stopNavigation);
 document.getElementById('retry-location').addEventListener('click', retryNavigation);
 document.getElementById('recenter-location').addEventListener('click', recenterLocation);
-window.addEventListener('beforeunload', () => { if (navigation.watchId !== null) navigator.geolocation.clearWatch(navigation.watchId); });
+document.getElementById('follow-location').addEventListener('click', () => {
+    navigation.followLocation = !navigation.followLocation;
+    updateFollowButton();
+    if (navigation.followLocation && navigation.locationMarker) map.panTo(navigation.locationMarker.getLatLng(), { animate: true, duration: 0.25 });
+});
+document.getElementById('manual-start').addEventListener('click', () => { setManualStartMode(true); document.getElementById('route-status').textContent = 'Click inside the campus boundary to choose a start point.'; });
+document.getElementById('confirm-manual-start').addEventListener('click', confirmManualStart);
+document.getElementById('cancel-manual-start').addEventListener('click', cancelManualStart);
+map.on('click', chooseManualStart);
+window.addEventListener('beforeunload', () => {
+    if (navigation.watchId !== null) navigator.geolocation.clearWatch(navigation.watchId);
+    if (navigation.animationFrame) cancelAnimationFrame(navigation.animationFrame);
+    stopPrediction();
+    if (navigation.followBound) map.off('dragstart', handleMapDragStart);
+});
 
 document.addEventListener('click', event => {
     if (!event.target.closest('.autocomplete')) {

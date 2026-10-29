@@ -38,8 +38,14 @@
         </select>
         <button id="clear-route" type="button">Clear route</button>
         <button id="start-navigation" type="button" hidden>Start Navigation</button>
+        <button id="manual-start" type="button">Set start point on map</button>
+        <div id="manual-start-controls" hidden>
+          <button id="confirm-manual-start" type="button">Confirm selected start</button>
+          <button id="cancel-manual-start" type="button">Cancel</button>
+        </div>
         <div id="navigation-controls" hidden>
           <button id="recenter-location" type="button">Recenter on my location</button>
+          <button id="follow-location" type="button">Follow location: on</button>
           <button id="retry-location" type="button" hidden>Retry GPS</button>
           <button id="stop-navigation" type="button">Stop Navigation</button>
         </div>

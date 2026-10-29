@@ -46,6 +46,29 @@ class NavigationMockTests(unittest.TestCase):
         self.assertNotIn('Current Location', html.split('id="search"', 1)[1].split('</header>', 1)[0])
         self.assertIn("selectCurrentLocationSource", script)
 
+    def test_mocked_stale_fixes_are_detectable(self):
+        fixes = [(30.76846, 76.57411), (30.76846, 76.57411), (30.76846, 76.57411)]
+        changed = [fixes[index] != fixes[index - 1] for index in range(1, len(fixes))]
+        self.assertEqual(changed, [False, False])
+
+    def test_manual_start_is_distinct_from_live_gps(self):
+        root = Path(__file__).resolve().parents[1]
+        html = (root / "campus-map" / "index.html").read_text(encoding="utf-8")
+        script = (root / "campus-map" / "js" / "map.js").read_text(encoding="utf-8")
+        self.assertIn('id="manual-start"', html)
+        self.assertIn("kind: 'manual-start'", script)
+        self.assertIn("Selected start point", script)
+        self.assertIn("if (!navigation.manualStartMode) return;", script)
+
+    def test_follow_mode_and_tracking_cleanup_are_wired(self):
+        root = Path(__file__).resolve().parents[1]
+        html = (root / "campus-map" / "index.html").read_text(encoding="utf-8")
+        script = (root / "campus-map" / "js" / "map.js").read_text(encoding="utf-8")
+        self.assertIn('id="follow-location"', html)
+        self.assertIn("handleMapDragStart", script)
+        self.assertIn("cancelAnimationFrame", script)
+        self.assertIn("stopPrediction", script)
+
 
 if __name__ == "__main__":
     unittest.main()
