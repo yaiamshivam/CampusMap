@@ -101,5 +101,24 @@ class MultiScreenFlowTests(unittest.TestCase):
         self.assertIn("Awaiting GPS", self.js)
         self.assertNotIn("metricDist) metricDist.textContent = 'Live GPS'", self.js)
 
+    def test_manual_start_uses_a_route_compatible_node_id(self):
+        self.assertIn("function graphNodeIdFor", self.js)
+        self.assertIn("mapping?.node_id ?? mapping?.nodeId", self.js)
+        self.assertIn("node_id: confirmedStart.nodeId", self.js)
+        self.assertIn("pendingManualStart = null", self.js)
+
+    def test_manual_picker_fits_the_verified_campus_extent(self):
+        self.assertIn("function focusCampusMap", self.js)
+        self.assertIn("map.invalidateSize({ pan: false })", self.js)
+        self.assertIn("map.fitBounds(bounds.pad(0.08), { maxZoom: 17, animate: false })", self.js)
+        self.assertIn("setManualStartMode(true, true)", self.js)
+
+    def test_route_action_has_visible_loading_and_error_feedback(self):
+        self.assertIn('id="destination-feedback"', self.html)
+        self.assertIn("function calculateRouteAndAdvance", self.js)
+        self.assertIn("setRouteCalculationLoading(true)", self.js)
+        self.assertIn("setDestinationFeedback", self.js)
+        self.assertIn("calculateRouteAndAdvance();", self.js)
+
 if __name__ == "__main__":
     unittest.main()

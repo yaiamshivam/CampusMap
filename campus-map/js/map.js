@@ -13,6 +13,7 @@ const routeLayer = L.layerGroup().addTo(map);
 const graph = { nodes: new Map(), adjacency: new Map() };
 let featureMapping = new Map();
 let campusBoundaryGeometry = null;
+let campusBounds = null;
 let selectedSource = null;
 let selectedDestination = null;
 let pendingManualStart = null;
@@ -148,7 +149,10 @@ async function loadLayer(key, file, options) {
         if (entry?.verified_name) feature.properties.name = entry.verified_name;
         if (entry) feature.properties.name_status = entry.status;
     });
-    if (key === 'campus boundary' && data.features[0]) campusBoundaryGeometry = data.features[0].geometry;
+    if (key === 'campus boundary' && data.features[0]) {
+        campusBoundaryGeometry = data.features[0].geometry;
+        campusBounds = L.geoJSON(data).getBounds();
+    }
     const layer = L.geoJSON(data, options);
     layers[key] = layer;
     records.push(...data.features.filter(named).map(feature => ({ feature, layer })));
@@ -224,8 +228,21 @@ function snapGpsToNode(latitude, longitude) {
 
 function mappingFor(feature) { return feature?.id ? featureMapping.get(feature.id) : null; }
 
+function graphNodeIdFor(mapping) {
+    return mapping?.node_id ?? mapping?.nodeId ?? null;
+}
+
+function focusCampusMap() {
+    const bounds = campusBounds || layers['campus boundary']?.getBounds();
+    if (!bounds?.isValid()) return;
+    requestAnimationFrame(() => {
+        map.invalidateSize({ pan: false });
+        map.fitBounds(bounds.pad(0.08), { maxZoom: 17, animate: false });
+    });
+}
+
 function selectCurrentLocationSource() {
-    cancelManualStart();
+    cancelManualStart(false);
     selectedSource = { kind: 'current-location', properties: { name: 'Current Location' } };
     document.getElementById('source-search').value = 'Current Location';
     document.getElementById('source-results').hidden = true;
@@ -531,14 +548,17 @@ function recenterLocation() {
     else document.getElementById('route-status').textContent = 'Waiting for a GPS fix. Keep navigation active or use Retry GPS.';
 }
 
-function setManualStartMode(active) {
+function setManualStartMode(active, focusCampus = false) {
     navigation.manualStartMode = active;
     const manualPickerBanner = document.getElementById('manual-map-picker-banner');
+    const confirmButton = document.getElementById('confirm-manual-start');
     if (manualPickerBanner) manualPickerBanner.hidden = !active;
     document.getElementById('manual-start-controls').hidden = !active;
     document.getElementById('manual-start').hidden = active;
+    if (confirmButton) confirmButton.disabled = !active || !pendingManualStart;
     if (active && typeof showScreen === 'function') {
         showScreen('screen-navigation');
+        if (focusCampus) focusCampusMap();
     }
     map.getContainer().style.cursor = active ? 'crosshair' : '';
     const headerStatus = document.getElementById('header-system-status');
@@ -549,11 +569,11 @@ function setManualStartMode(active) {
     }
 }
 
-function cancelManualStart() {
+function cancelManualStart(returnToSource = true) {
     pendingManualStart = null;
     setManualStartMode(false);
     if (navigation.manualMarker) { map.removeLayer(navigation.manualMarker); navigation.manualMarker = null; }
-    if (typeof showScreen === 'function') showScreen('screen-source');
+    if (returnToSource && typeof showScreen === 'function') showScreen('screen-source');
 }
 
 function chooseManualStart(event) {
@@ -570,13 +590,19 @@ function chooseManualStart(event) {
     pendingManualStart = { nodeId: snapped.nodeId, distance: snapped.distance, latlng: event.latlng };
     if (navigation.manualMarker) map.removeLayer(navigation.manualMarker);
     navigation.manualMarker = L.circleMarker(event.latlng, { radius: 9, color: '#6b3f00', weight: 3, fillColor: '#f0b15a', fillOpacity: 1 }).bindTooltip('Selected start point (pending)', { permanent: true, direction: 'top' }).addTo(map);
+    document.getElementById('confirm-manual-start').disabled = false;
     document.getElementById('route-status').textContent = `Start point selected (${Math.round(snapped.distance)} m from graph node). Confirm it to calculate a route.`;
 }
 
 function confirmManualStart() {
-    if (!pendingManualStart) return;
+    if (!pendingManualStart) {
+        document.getElementById('route-status').textContent = 'Choose a point on the campus map before confirming your start.';
+        return;
+    }
     if (navigation.active) stopNavigation();
-    selectedSource = { kind: 'manual-start', nodeId: pendingManualStart.nodeId, latlng: pendingManualStart.latlng, properties: { name: 'Selected start point' } };
+    const confirmedStart = pendingManualStart;
+    pendingManualStart = null;
+    selectedSource = { kind: 'manual-start', nodeId: confirmedStart.nodeId, node_id: confirmedStart.nodeId, latlng: confirmedStart.latlng, properties: { name: 'Selected start point' } };
     document.getElementById('source-search').value = 'Selected start point';
     document.getElementById('source-results').hidden = true;
     if (navigation.manualMarker) navigation.manualMarker.setTooltipContent('Selected start point');
@@ -601,9 +627,11 @@ function displayRoute() {
     if (!selectedSource || !selectedDestination) { status.textContent = 'Choose a start and destination to calculate a route.'; if (typeof updateFlowUI === 'function') updateFlowUI(); return false; }
     if (selectedSource.kind === 'current-location') { status.textContent = 'Current Location selected. Start Navigation to verify your position before routing.'; if (typeof updateFlowUI === 'function') updateFlowUI(); return false; }
     const sourceMapping = selectedSource.kind === 'manual-start' ? selectedSource : mappingFor(selectedSource), destinationMapping = mappingFor(selectedDestination);
-    if (!sourceMapping || !destinationMapping) { status.textContent = 'A selected feature has no verified graph-node mapping.'; if (typeof updateFlowUI === 'function') updateFlowUI(); return false; }
+    const sourceNodeId = graphNodeIdFor(sourceMapping);
+    const destinationNodeId = graphNodeIdFor(destinationMapping);
+    if (!sourceNodeId || !destinationNodeId) { status.textContent = 'A selected feature has no verified graph-node mapping.'; if (typeof updateFlowUI === 'function') updateFlowUI(); return false; }
     const algorithm = document.getElementById('route-algorithm').value;
-    const result = algorithm === 'bfs' ? bfs(sourceMapping.node_id, destinationMapping.node_id) : dijkstra(sourceMapping.node_id, destinationMapping.node_id);
+    const result = algorithm === 'bfs' ? bfs(sourceNodeId, destinationNodeId) : dijkstra(sourceNodeId, destinationNodeId);
     if (!result) { status.textContent = 'No route exists between these graph components.'; if (typeof updateFlowUI === 'function') updateFlowUI(); return false; }
     const latlngs = result.nodes.map(id => [graph.nodes.get(id).lat, graph.nodes.get(id).lon]);
     L.polyline(latlngs, { color: '#0284c7', weight: 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }).addTo(routeLayer); map.fitBounds(L.latLngBounds(latlngs).pad(0.12));
@@ -615,7 +643,7 @@ function displayRoute() {
 function selectFeature(item, type) {
     if (type === 'source') {
         if (navigation.active) stopNavigation();
-        cancelManualStart();
+        cancelManualStart(false);
         selectedSource = item.feature; setFeatureMarker(item.feature, 'source');
     }
     else {
@@ -804,6 +832,43 @@ function showScreen(screenId) {
     updateFlowUI();
 }
 
+function setDestinationFeedback(message, tone = 'neutral') {
+    const feedback = document.getElementById('destination-feedback');
+    if (!feedback) return;
+    feedback.hidden = !message;
+    feedback.textContent = message || '';
+    feedback.dataset.tone = tone;
+}
+
+function setRouteCalculationLoading(loading) {
+    const button = document.getElementById('btn-find-route-preview');
+    if (!button) return;
+    button.disabled = loading || !selectedSource || !selectedDestination;
+    button.classList.toggle('is-loading', loading);
+    const label = button.querySelector('span');
+    if (label) label.textContent = loading ? 'Calculating route…' : 'Calculate Route';
+}
+
+function calculateRouteAndAdvance() {
+    if (!selectedSource || !selectedDestination) {
+        setDestinationFeedback('Choose both a starting point and a destination before calculating a route.', 'error');
+        updateFlowUI();
+        return;
+    }
+    setDestinationFeedback('Calculating the route on the campus graph…', 'loading');
+    setRouteCalculationLoading(true);
+    requestAnimationFrame(() => {
+        const routeReady = displayRoute();
+        setRouteCalculationLoading(false);
+        if (routeReady || selectedSource.kind === 'current-location') {
+            setDestinationFeedback('');
+            showScreen(SCREENS.PREVIEW);
+            return;
+        }
+        setDestinationFeedback(document.getElementById('route-status').textContent, 'error');
+    });
+}
+
 function renderDestinationCards(filterCategory = 'all') {
     const container = document.getElementById('destinations-grid-container');
     if (!container) return;
@@ -879,7 +944,7 @@ function updateFlowUI() {
         if (destName) {
             destStatusVal.textContent = destName;
             destStatusDot.classList.add('active');
-            if (btnFindRoute) btnFindRoute.disabled = false;
+            if (btnFindRoute) btnFindRoute.disabled = !selectedSource;
         } else {
             destStatusVal.textContent = 'None selected';
             destStatusDot.classList.remove('active');
@@ -921,11 +986,11 @@ function updateFlowUI() {
                 if (metricTime) metricTime.textContent = 'After validation';
                 if (hudDistBadge) hudDistBadge.textContent = 'Awaiting GPS';
             }
-        } else if (sourceMapping && destinationMapping) {
+        } else if (graphNodeIdFor(sourceMapping) && graphNodeIdFor(destinationMapping)) {
             const algorithm = document.getElementById('route-algorithm').value;
             const res = algorithm === 'bfs'
-                ? bfs(sourceMapping.node_id, destinationMapping.node_id)
-                : dijkstra(sourceMapping.node_id, destinationMapping.node_id);
+                ? bfs(graphNodeIdFor(sourceMapping), graphNodeIdFor(destinationMapping))
+                : dijkstra(graphNodeIdFor(sourceMapping), graphNodeIdFor(destinationMapping));
             if (res) {
                 const distStr = formatDistance(res.distance);
                 const timeStr = Math.max(1, Math.round(res.distance / WALKING_SPEED_MPS / 60)) + ' min';
@@ -958,8 +1023,7 @@ document.getElementById('btn-continue-to-dest')?.addEventListener('click', () =>
 document.getElementById('btn-back-dest-to-source')?.addEventListener('click', () => showScreen(SCREENS.SOURCE));
 document.getElementById('dest-departure-recap')?.addEventListener('click', () => showScreen(SCREENS.SOURCE));
 document.getElementById('btn-find-route-preview')?.addEventListener('click', () => {
-    const routeReady = displayRoute();
-    if (routeReady || selectedSource?.kind === 'current-location') showScreen(SCREENS.PREVIEW);
+    calculateRouteAndAdvance();
 });
 
 // Category Filter Tabs in Screen 3
@@ -976,7 +1040,13 @@ document.querySelectorAll('.filter-tab').forEach(tab => {
 document.getElementById('btn-back-preview-to-dest')?.addEventListener('click', () => showScreen(SCREENS.DESTINATION));
 document.getElementById('btn-change-source')?.addEventListener('click', () => showScreen(SCREENS.SOURCE));
 document.getElementById('btn-change-destination')?.addEventListener('click', () => showScreen(SCREENS.DESTINATION));
-document.getElementById('btn-view-map-preview')?.addEventListener('click', () => showScreen(SCREENS.NAVIGATION));
+document.getElementById('btn-view-map-preview')?.addEventListener('click', () => {
+    if (selectedSource?.kind === 'current-location') {
+        document.getElementById('route-status').textContent = 'Start Live Navigation to verify your GPS position and show a campus route.';
+        return;
+    }
+    if (displayRoute()) showScreen(SCREENS.NAVIGATION);
+});
 
 // Screen 5
 document.getElementById('btn-exit-navigation')?.addEventListener('click', () => showScreen(SCREENS.PREVIEW));
@@ -1004,8 +1074,7 @@ document.getElementById('start-navigation').addEventListener('click', () => {
     if (selectedSource && selectedSource.kind === 'current-location') {
         startNavigation();
     } else {
-        displayRoute();
-        showScreen(SCREENS.NAVIGATION);
+        if (displayRoute()) showScreen(SCREENS.NAVIGATION);
     }
 });
 document.getElementById('stop-navigation').addEventListener('click', stopNavigation);
@@ -1017,7 +1086,7 @@ document.getElementById('follow-location').addEventListener('click', () => {
     if (navigation.followLocation && navigation.locationMarker) map.panTo(navigation.locationMarker.getLatLng(), { animate: true, duration: 0.25 });
 });
 document.getElementById('manual-start').addEventListener('click', () => {
-    setManualStartMode(true);
+    setManualStartMode(true, true);
     document.getElementById('route-status').textContent = 'Click inside the campus boundary to choose a start point.';
 });
 document.getElementById('confirm-manual-start').addEventListener('click', confirmManualStart);

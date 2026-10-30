@@ -619,6 +619,34 @@ html, body {
   margin-top: 8px;
 }
 
+.destination-feedback {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.destination-feedback[data-tone="loading"] {
+  border-color: rgba(56, 189, 248, 0.35);
+  color: var(--brand-cyan);
+}
+
+.destination-feedback[data-tone="error"] {
+  border-color: rgba(244, 63, 94, 0.42);
+  color: #fda4af;
+}
+
+.btn-primary-flow.is-loading {
+  cursor: wait;
+  opacity: 0.8;
+}
+
 .selected-status-card {
   display: flex;
   align-items: center;
