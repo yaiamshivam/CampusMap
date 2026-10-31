@@ -12,6 +12,17 @@ python -m http.server 8000
 
 Open `http://127.0.0.1:8000/index.html`.
 
+## Deploy on Vercel
+
+This folder is the static-site root. In the Vercel project's **Build and Deployment** settings, use:
+
+- **Root Directory:** `campus-map`
+- **Framework Preset:** `Other`
+- **Build Command:** leave empty
+- **Output Directory:** `.`
+
+The included `vercel.json` is intentionally minimal. With `campus-map` configured as the root directory, Vercel serves `index.html` at `/` and preserves the `css/`, `js/`, and `data/` paths used by the app.
+
 The map uses Leaflet and OpenStreetMap-compatible tiles. Its local layers are:
 
 - `data/buildings.geojson` — individual building footprints.
